@@ -9,6 +9,7 @@ const argsSchema = [
     ['pull', ''], // Download a module
     ['json', false], // Show the json data of the api request.
     ['remove', ''], // Remove a module. (Better than deleting all the files)
+    ['setup', false], // Set up some required things. (alias)
 ];
 
 export function autocomplete(data, args) {
@@ -23,6 +24,10 @@ async function generateHTMLOffListing(ns, item, url) {
     let repo = await getRepoVersion(ns, item);
     let local = getVersionFromFile(ns, 'Git/Data/local_version.txt', item);
     let html = `<tr id="${url}"><td class="name">${item}</td><td>${repo}</td><td>${local == -1 ? '' : local}</td>`;
+
+    if (repo == '-1') {
+        ns.tprint(`WARNING: ${options.github}/${options.repository} recently updated. Please check back again later.`);
+    }
 
     let gitClass = local == '-1' ? 'git-download' : 'git-update';
     let gitMode = local == '-1' ? `[Download]` : `[Update]`;
@@ -158,6 +163,10 @@ export async function main(ns) {
         ns.exit();
     }
 
+    if (options.setup) {
+        await setNavCommand(`alias git="run ${ns.getScriptName()}"`)
+    }
+
 
     let limit = await getAPILimit(ns);
     if (limit.remaining < 10) {
@@ -172,9 +181,9 @@ export async function main(ns) {
 
     terminalInsert(await generateHTML(ns));
 
-    addCallback(".git-download", "run Git/git.js --pull");
-    addCallback(".git-update", "run Git/git.js --pull");
-    addCallback(".git-remove", "run Git/git.js --remove");
+    addCallback(".git-download", `run ${ns.getScriptName()} --pull`);
+    addCallback(".git-update", `run ${ns.getScriptName()} --pull`);
+    addCallback(".git-remove", `run ${ns.getScriptName()} --remove`);
 }
 
 /**
