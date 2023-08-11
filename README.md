@@ -5,6 +5,7 @@ Some of my custom files for bit burner. Not designed to help out with progressio
 Each folder is a different module. Each containing a differnet item. For that module to work, the whole folder must be imported into the game.
 
 The recommended option to put stuff into the game is by getting the `Git.js` file and running that as it is a self-contained mini git view that lest you download a whole module.
+Note: Upon downloading `Git.js` into `Git.js` . It is recommended to run the command `Git/git.js --setup` follwed by `git --help`
 
 ## Running Modules.
 Most modules come with an `AutoStart.js` script. This will be ran once the module has been downloaded (if using `git.js` script). The `AutoStart.js` will give you some options of what you can do with that module
