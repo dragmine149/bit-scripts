@@ -51,7 +51,7 @@ export async function generateUI(ns, runOptions) {
 
   let css = `
   <style id="htopcss">
-    .main {white-space:pre; color:#ccc; font:14px monospace; line-height: 16px; }
+    .htop-main {white-space:pre; color:#ccc; font:14px monospace; line-height: 16px; }
     .ram .used {color:#0f0;}
     .ram .free {color:#fff;}
     .Tasks {color:#00ff5c;}
@@ -79,7 +79,7 @@ export async function generateUI(ns, runOptions) {
   let ram = getRam(ns, runOptions.server);
   let server = ns.getServer(runOptions.server);
 
-  let html = `<span id="htop" class="main"><span id="P_HID_INFO" hidden>${ns.pid}</span>`;
+  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span>`;
   html += `<table><tr><td>`;
   html += `${progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50)}`;
   html += `</td><td id="Tasks" class="Tasks">Tasks: ${ns.ps(runOptions.server).length}</td><td><a class="htop-quit">[Quit]</a></tr>`;

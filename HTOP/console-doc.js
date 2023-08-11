@@ -49,6 +49,10 @@ export async function setNavCommand(inputValue) {
  * The command to run on click
  */
 export async function addCallback(cssClass, command) {
+  if (!cssClass.startsWith('.')) {
+    cssClass = `.${cssClass}`;
+  }
+
   doc.querySelectorAll(cssClass).forEach(button => button
     .addEventListener('click', setNavCommand.bind(null, command)));
 }

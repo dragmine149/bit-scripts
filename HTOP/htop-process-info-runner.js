@@ -29,20 +29,20 @@ export async function main(ns) {
       doc.getElementById("Process-Info").innerHTML = generateProcessInfo(ns, Number(doc.getElementById("P_HID_INFO").innerText));
 
       doc.querySelectorAll(".P-nano").forEach((button) => {
-        button.addEventListener('click', setNavCommand.bind(null, routeDirect('nano ' + doc.getElementById("p-filename-n").innerText)));
+        button.addEventListener('click', setNavCommand.bind(null, routeDirect(ns, 'nano ' + doc.getElementById("p-filename-n").innerText)));
       })
       doc.querySelectorAll(".P-tail").forEach((button) => {
-        button.addEventListener('click', setNavCommand.bind(null, routeDirect('tail ' + button.parentNode.id.split('-')[1])));
+        button.addEventListener('click', setNavCommand.bind(null, routeDirect(ns, 'tail ' + button.parentNode.id.split('-')[1])));
       })
       doc.querySelectorAll(".P-restart").forEach((button) => {
         button.addEventListener('click', () => {
-          setNavCommand(routeDirect('run HTOP/rs.js ' + button.parentNode.id.split('-')[1]));
+          setNavCommand(routeDirect(ns, 'run HTOP/rs.js ' + button.parentNode.id.split('-')[1]));
           doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
         });
       })
       doc.querySelectorAll(".P-kill").forEach((button) => {
         button.addEventListener('click', () => {
-          setNavCommand(routeDirect('kill ' + button.parentNode.id.split('-')[1]));
+          setNavCommand(routeDirect(ns, 'kill ' + button.parentNode.id.split('-')[1]));
           doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
         });
       })
