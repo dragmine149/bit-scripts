@@ -10,6 +10,7 @@ const argsSchema = [
     ['json', false], // Show the json data of the api request.
     ['remove', ''], // Remove a module. (Better than deleting all the files)
     ['setup', false], // Set up some required things. (alias)
+    ['ver', ''], // Check the version of a file.
 ];
 
 export function autocomplete(data, args) {
@@ -127,7 +128,7 @@ export async function pull(ns) {
 export function removeModule(ns) {
     let moduleName = getModuleNameFromURL(ns, options.remove);
     let files = ns.ls('home', moduleName);
-    
+
     for (let file of files) {
         ns.rm(file, 'home');
     }
@@ -140,15 +141,32 @@ export function removeModule(ns) {
     ns.run(ns.getScriptName());
 }
 
+class Version {
+    constructor(s) {
+        this.arr = s.split('.').map(Number);
+    }
+    compareTo(v) {
+        for (var i = 0; ; i++) {
+            if (i >= v.arr.length)
+                return i >= this.arr.length ? 0 : 1;
+            if (i >= this.arr.length)
+                return -1;
+            var diff = this.arr[i] - v.arr[i];
+            if (diff)
+                return diff > 0 ? 1 : -1;
+        }
+    }
+}
+
 /**
  * @param {NS} ns
  * THIS IS MAIN FUNCTION
  */
 export async function main(ns) {
     let name = ns.getScriptName().split('/');
-        if (name[0] != 'Git' || name.length > 2) {
-            ns.tprint(`WARN: 'git.js' not in the correct folder. It is recommended to put 'git.js' in 'Git/git.js' (Command: 'mv ${ns.getScriptName()} Git/git.js')`);
-        }
+    if (name[0] != 'Git' || name.length > 2) {
+        ns.tprint(`WARN: 'git.js' not in the correct folder. It is recommended to put 'git.js' in 'Git/git.js' (Command: 'mv ${ns.getScriptName()} Git/git.js')`);
+    }
 
     options = getConfiguration(ns, argsSchema);
     if (!options) return;
@@ -165,6 +183,16 @@ export async function main(ns) {
 
     if (options.remove) {
         removeModule(ns);
+        ns.exit();
+    }
+
+    if (options.ver) {
+        let local = getVersionFromFile(ns, 'Git/Data/local_version.txt', options.ver);
+        let git = await getRepoVersion(ns, options.ver);
+
+        if (new Version(local).compareTo(new Version(git)) == -1) {
+            ns.tprint(`WARN: New version of ${options.ver} alvalible. (Local version: ${local}. New version: ${git})`);
+        }
         ns.exit();
     }
 
@@ -206,7 +234,7 @@ function getVersionFromFile(ns, file, script) {
 }
 
 /** @param {NS} ns */
-function updateVersionFile(ns, folderName, remove=false) {
+function updateVersionFile(ns, folderName, remove = false) {
     // update version files.
     let data = ns.read("Git/Data/local_version.txt");
     const lines = data.split('\n');
@@ -220,7 +248,7 @@ function updateVersionFile(ns, folderName, remove=false) {
                 lines.splice(line, 1);
                 break;
             }
-            
+
             lines[line] = `${folderName}:${newVersion}`;
             break;
         }
@@ -250,7 +278,7 @@ async function getRepoVersion(ns, file) {
         ns.exit();
     }
 
-    if (ns.read('Git/Data/version.txt').trim() == wget_error_msg)  {
+    if (ns.read('Git/Data/version.txt').trim() == wget_error_msg) {
         ns.tprint("ERROR: Failed to download git version.txt script. (Incorrect url?)");
         ns.tprint("INFO: Reason='File contained default wget message not actualy version info'");
         ns.tprint("INFO: url=" + versionURL);
@@ -497,13 +525,13 @@ export function setCSS(name, css) {
  * Value to run on action.
  */
 export async function setNavCommand(inputValue) {
-  const terminalInput = doc.getElementById("terminal-input");
-  const terminalEventHandlerKey = Object.keys(terminalInput)[1]
+    const terminalInput = doc.getElementById("terminal-input");
+    const terminalEventHandlerKey = Object.keys(terminalInput)[1]
 
-  terminalInput.value = inputValue;
-  terminalInput[terminalEventHandlerKey].onChange({ target: terminalInput });
-  terminalInput.focus();
-  await terminalInput[terminalEventHandlerKey].onKeyDown({ key: 'Enter', preventDefault: () => 0 });
+    terminalInput.value = inputValue;
+    terminalInput[terminalEventHandlerKey].onChange({ target: terminalInput });
+    terminalInput.focus();
+    await terminalInput[terminalEventHandlerKey].onKeyDown({ key: 'Enter', preventDefault: () => 0 });
 }
 
 /**
@@ -513,6 +541,6 @@ export async function setNavCommand(inputValue) {
  * The command to run on click
  */
 export function addCallback(cssClass, command) {
-  doc.querySelectorAll(cssClass).forEach(button => button
-    .addEventListener('click', setNavCommand.bind(null, command + " " + button.parentNode.parentNode.id)));
+    doc.querySelectorAll(cssClass).forEach(button => button
+        .addEventListener('click', setNavCommand.bind(null, command + " " + button.parentNode.parentNode.id)));
 }
