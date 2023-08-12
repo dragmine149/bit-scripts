@@ -145,6 +145,11 @@ export function removeModule(ns) {
  * THIS IS MAIN FUNCTION
  */
 export async function main(ns) {
+    let name = ns.getScriptName().split('/');
+        if (name[0] != 'Git' || name.length > 2) {
+            ns.tprint(`WARN: 'git.js' not in the correct folder. It is recommended to put 'git.js' in 'Git/git.js' (Command: 'mv ${ns.getScriptName()} Git/git.js')`);
+        }
+
     options = getConfiguration(ns, argsSchema);
     if (!options) return;
 
@@ -164,12 +169,12 @@ export async function main(ns) {
     }
 
     if (options.setup) {
-        await setNavCommand(`alias git="run ${ns.getScriptName()}"`)
+        await setNavCommand(`alias git="run ${ns.getScriptName()}"`);
     }
 
 
     let limit = await getAPILimit(ns);
-    if (limit.remaining < 10) {
+    if (limit.remaining < 10 && limit.remaining != -1) {
         let reset = limit.reset;
         let date = new Date(reset * 1000);
 
@@ -207,22 +212,24 @@ function updateVersionFile(ns, folderName, remove=false) {
     const lines = data.split('\n');
     const newVersion = getVersionFromFile(ns, 'Git/Data/version.txt', folderName);
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.startsWith(folderName)) {
+    let found = false;
+    for (let line = 0; line < lines.length; line++) {
+        if (lines[line].startsWith(folderName)) {
+            found = true;
             if (remove) {
-                lines[i] = '';
+                lines.splice(line, 1);
                 break;
             }
-
-            lines[i] = `${folderName}:${newVersion}`;
+            
+            lines[line] = `${folderName}:${newVersion}`;
             break;
         }
     }
 
-    if (!remove) {
+    if (!found) {
         lines.push(`${folderName}:${newVersion}`);
     }
+
 
     ns.write('Git/Data/local_version.txt', lines.join('\n'), 'w');
 }
@@ -296,9 +303,7 @@ async function repositoryListing(ns) {
     } catch (error) {
         ns.tprint(`WARNING: Failed to get a repository listing (GitHub API request limit of 60 reached?): ${listUrl}` +
             `\nResponse Contents (if available): $.api-limit{JSON.stringify(response ?? '(N/A)')}\nERROR: ${String(error)}`);
-        // Fallback, assume the user already has a copy of all files in the repo, and use it as a directory listing
-        return ns.ls('home').filter(name => options.extension.some(ext => f.endsWith(ext)) &&
-            !options['omit-folder'].some(dir => name.startsWith(dir)));
+        ns.exit();
     }
 }
 
@@ -329,14 +334,10 @@ async function getAPILimit(ns) {
 
         return response.resources.core;
     } catch (error) {
-        ns.tprint(`WARNING: Failed to get the api rate limit data (No internet connection?)
-        ERROR:${String(error)}`);
+        ns.tprint(`WARNING: Failed to get the api rate limit data (No internet connection?)`);
+        ns.tprint(`ERROR:${String(error)}`);
         return {
-            'limit': 0,
-            'remaining': 0,
-            'reset': -1,
-            'used': 0,
-            'resource': 'core'
+            "remaining": -1
         };
     }
 }
