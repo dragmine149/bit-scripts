@@ -16,6 +16,21 @@ export function secondsToDhms(seconds, compact = false) {
   return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
+/** @param {NS} ns */
+export function getResetTime(ns) {
+    let resetInfo = ns.getResetInfo();
+    let plr = ns.getPlayer();
+    let dn = Date.now();
+    let augTime = resetInfo.lastAugReset == -1 ? secondsToDhms(plr.totalPlaytime / 1000) : secondsToDhms((dn - resetInfo.lastAugReset) / 1000);
+    let nodeTime = resetInfo.lastNodeReset == -1 ? '' : `${secondsToDhms((dn - resetInfo.lastNodeReset) / 1000)} (node)`;
+
+    return {
+        "augment": `${augTime} (augment) ${resetInfo.lastNodeReset == -1 ? '' : '\n'}`,
+        "node": nodeTime,
+        "total": `${secondsToDhms(plr.totalPlaytime / 1000)} (total)`
+    };
+}
+
 /**
  * @param {NS} ns
  */
@@ -26,6 +41,16 @@ export function getRam(ns, host) {
   };
 
   return r;
+}
+
+export function getServerFromHTML(defaultServer='home') {
+    let info = null;
+    try {
+        info = eval('document').getElementById("P_HID_SERVER").innerText;
+    } catch (error) {
+        return defaultServer;
+    }
+    return info == '' ? defaultServer : info;
 }
 
 /**

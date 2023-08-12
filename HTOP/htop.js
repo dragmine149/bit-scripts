@@ -1,5 +1,5 @@
 import { terminalInsert, setCSS, tailWindow, removeElement } from 'HTOP/console-doc.js';
-import { secondsToDhms, getRam, progressBar, getConfiguration, DFS } from 'HTOP/utils.js';
+import { secondsToDhms, getRam, progressBar, getConfiguration, DFS, getResetTime, getServerFromHTML } from 'HTOP/utils.js';
 
 const doc = eval('document');
 const process_title = `<tr id="Info" class="Info"><td>PID</td><td>SERVER</td><td>MEM</td><td>UPTIME</td><td>COMMAND</td><td>ARGS</td><td>THREADS</td></tr>`;
@@ -86,16 +86,16 @@ export async function generateUI(ns, runOptions) {
 
   setCSS("htopcss", css);
 
-  let ram = getRam(ns, runOptions.server);
+  let ram = getRam(ns, getServerFromHTML(runOptions.server));
   let server = ns.getServer(runOptions.server);
-  let resetInfo = ns.getResetInfo();
+  let uptime = getResetTime(ns);
 
-  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER"></span>`;
+  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER" hidden></span>`;
   html += `<table><tr><td>`;
   html += `${progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50)}`;
   html += `</td><td id="Tasks" class="Tasks">Tasks: ${getProcesses(ns, runOptions).length}</td><td><a class="htop-quit">[Quit]</a></tr>`;
   html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${server.cpuCores}</span></td></tr></table></td>`;
-  html += `<td id="Uptime" class="Uptime">Uptime: ${secondsToDhms((Date.now() - (resetInfo.lastAugReset + resetInfo.lastNodeReset)) / 1000)}</td></tr></table>`;
+  html += `<td id="Uptime" class="Uptime">Uptime: ${uptime.augment} ${uptime.node}\n${uptime.total}</td></tr></table>`;
   html += `<span>\n</span>`;
   html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Runtime</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
   html += `<tr id="Process-Info" class="Process-Info">${generateProcessInfo(ns, ns.pid)}</tr></table>`;
@@ -128,15 +128,15 @@ export async function updateUI(ns, runOptions) {
     }
 
     try {
-      let ram = getRam(ns, runOptions.server);
-      let server = ns.getServer();
-      let resetInfo = ns.getResetInfo();
+      let ram = getRam(ns, getServerFromHTML(runOptions.server));
+      let server = ns.getServer(getServerFromHTML(runOptions.server));
+      let uptime = getResetTime(ns);
 
       // update parts of the ui.
       doc.getElementById("ram").innerHTML = progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50);
       doc.getElementById("Tasks").innerHTML = `Tasks: ${getProcesses(ns, runOptions).length}`;
       doc.getElementById("Cores").innerHTML = `Cores: ${server.cpuCores}`;
-      doc.getElementById("Uptime").innerHTML = `Uptime: ${secondsToDhms((Date.now() - (resetInfo.lastAugReset + resetInfo.lastNodeReset)) / 1000)}`;
+      doc.getElementById("Uptime").innerHTML = `Uptime: ${uptime.augment}${uptime.node}\n${uptime.total}`;
       doc.getElementById("htop-Process").innerHTML = `${process_title}${generateProcesses(ns, runOptions)}`;
 
 
