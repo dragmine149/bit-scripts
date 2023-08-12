@@ -19,6 +19,7 @@ function routeDirect(ns, cmd, server) {
 }
 
 /** @param {NS} ns */
+// NS arg[0] = htop PID
 export async function main(ns) {
   // the first paramater will be the server name.
   const doc = eval('document');
@@ -63,6 +64,12 @@ export async function main(ns) {
         });
       })
 
+      doc.querySelectorAll(".htop-quit").forEach((button) => {
+        button.addEventListener('click', () => {
+          doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "exit";
+        })
+      })
+
       let acTC = doc.getElementById("P_HID_ACTION").firstElementChild.textContent;
       let acPID = Number(doc.getElementById("P_HID_ACTION").lastElementChild.textContent);
       if (acTC != '') {
@@ -85,6 +92,11 @@ export async function main(ns) {
             doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
             doc.getElementById("P_HID_SERVER").innerText = 'home';
             break;
+
+          case 'exit':
+            ns.kill(ns.args[0]);
+            ns.toast(`Exited htop.js`);
+            ns.exit();
         }
 
         doc.getElementById("P_HID_ACTION").innerHTML = `<span></span><span></span>`;

@@ -46,7 +46,11 @@ export function generateProcessInfo(ns, id) {
   html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)} </span><span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
   html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)} </span><span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
   html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)} </span><span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
-  html += `<td id="p-${script.pid}"><a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a><a class="P-tail" id="P-tail">[Tail]</a><a class="P-restart" id="P-restart" ${ram.free >= 4.2 ? 'hidden' : ''}>[Restart]</a><a class="P-kill" id="P-kill">[Kill]</a></td>`;
+  html += `<td id="p-${script.pid}">`;
+  html += `<a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a>`
+  html += `<a class="P-tail" id="P-tail">[Tail]</a>`
+  html += `<a class="P-restart" id="P-restart" ${ram.free >= 4.2 ? '' : 'hidden'}>[Restart]</a>`
+  html += `<a class="P-kill" id="P-kill">[Kill]</a></td>`;
 
   return html;
 }
@@ -157,13 +161,8 @@ export async function updateUI(ns, runOptions) {
 
           doc.getElementById("P_HID_INFO").innerHTML = e.target.id.split('-')[1];
           doc.getElementById("P_HID_SERVER").innerHTML = e.target.parentNode.parentNode.children[1].innerText;
-        }));
-
-      doc.querySelectorAll(".htop-quit").forEach((button) => {
-        button.addEventListener('click', () => {
-          ns.exit();
         })
-      })
+      );
     } catch (e) {
       ns.tprint("Stoped `htop.js` due to an error (Potentinally due to terminal not being focused).");
       ns.tprint("ERROR: \n" + e);
@@ -197,6 +196,12 @@ export function die(ns) {
 
 /** @param {NS} ns */
 export async function main(ns) {
+  if (ns.fileExists('Git/git.js')) {
+    ns.run('Git/git.js', 1, '--ver', 'HTOP');
+  } else {
+    ns.print("Failed to check for new version due to missing Git module");
+  }
+
   const runOptions = getConfiguration(ns, argsSchema);
   if (!runOptions) return; // Invalid options, or ran in --help mode.
 
