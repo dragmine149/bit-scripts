@@ -469,8 +469,8 @@ export function getConfiguration(ns, argsSchema) {
 
 
 
-// const doc = eval('document');
-let doc = document;
+const doc = eval('document');
+
 
 /**
  * @param {string} html
