@@ -16,6 +16,6 @@ export async function main(ns) {
   setCSS("htopauto", css);
   terminalInsert(html);
 
-  addCallback(".auto-alias", `alias htop="run ${ns.getScriptName()}"`);
+  addCallback(".auto-alias", `alias htop="run HTOP/htop.js"`);
   addCallback(".auto-help", `run HTOP/htop.js --help`);
 }
