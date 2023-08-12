@@ -12,10 +12,9 @@ import {getRoute} from 'HTOP/utils.js';
  * This script is also home to the other options that can be clicked on.
  */
 
-function routeDirect(ns, cmd) {
-  let route = getRoute(ns, ns.args[0]) + `;`;
+function routeDirect(ns, cmd, server) {
+  let route = getRoute(ns, server) + `;`;
   route += cmd;
-  route += `;home`;
   return route
 }
 
@@ -26,26 +25,63 @@ export async function main(ns) {
 
   while (ns.scriptRunning('HTOP/htop.js', 'home')) {
     if (doc.getElementById("P_HID_INFO") != null) {
+      let server = doc.getElementById("P_HID_SERVER").innerText;
+      if (server == '') {
+        // assume home if no server.
+        server = 'home';
+      }
+
       doc.getElementById("Process-Info").innerHTML = generateProcessInfo(ns, Number(doc.getElementById("P_HID_INFO").innerText));
 
-      doc.querySelectorAll(".P-nano").forEach((button) => {
-        button.addEventListener('click', setNavCommand.bind(null, routeDirect(ns, 'nano ' + doc.getElementById("p-filename-n").innerText)));
-      })
+      // don't add listener if we aren't in terminal.
+      if (doc.getElementById("terminal") != undefined) { 
+        doc.querySelectorAll(".P-nano").forEach((button) => {
+          button.addEventListener('click', setNavCommand.bind(null, routeDirect(ns, 'nano ' + doc.getElementById("p-filename-n").innerText, server)));
+        })
+      }
+
       doc.querySelectorAll(".P-tail").forEach((button) => {
-        button.addEventListener('click', setNavCommand.bind(null, routeDirect(ns, 'tail ' + button.parentNode.id.split('-')[1])));
+        button.addEventListener('click', () => {
+          doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "tail";
+          doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
+        });
       })
       doc.querySelectorAll(".P-restart").forEach((button) => {
         button.addEventListener('click', () => {
-          setNavCommand(routeDirect(ns, 'run HTOP/rs.js ' + button.parentNode.id.split('-')[1]));
-          doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
+          doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "restart";
+          doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
         });
       })
       doc.querySelectorAll(".P-kill").forEach((button) => {
         button.addEventListener('click', () => {
-          setNavCommand(routeDirect(ns, 'kill ' + button.parentNode.id.split('-')[1]));
-          doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
+          doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "kill";
+          doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
         });
       })
+
+      let acTC = doc.getElementById("P_HID_ACTION").firstElementChild.textContent;
+      let acPID = Number(doc.getElementById("P_HID_ACTION").lastElementChild.textContent);
+      if (acTC != '') {
+        switch (acTC) {
+          case 'kill':
+            ns.kill(acPID);
+            doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
+            doc.getElementById("P_HID_SERVER").innerText = 'home';
+            break;
+          
+          case 'tail':
+            ns.tail(acPID, ns.args[0]);
+            break;
+          
+          case 'restart':
+            ns.run('HTOP/rs.js', 1, acPID);
+            doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
+            doc.getElementById("P_HID_SERVER").innerText = 'home';
+            break;
+        }
+
+        doc.getElementById("P_HID_ACTION").innerHTML = `<span></span><span></span>`;
+      }
     }
     await ns.sleep(250);
   }

@@ -84,6 +84,32 @@ export function getRoute(ns, server) {
     return routes[server];
 }
 
+/**
+ * DFS traversal starting from host
+ *
+ * @async
+ * @param {NS} ns
+ * @param {string} host starting point of the traversal
+ * @returns {array} List of processes.
+ */
+export function DFS(ns, host) {
+    let visited = { [host]: true };
+    let stack = [{ host, parent: null }];
+    let data = []
+    while (stack.length !== 0) {
+        let h = stack.pop();
+        for (let child of ns.scan(h.host)) {
+            if (visited[child] === true)
+                continue;
+            stack.push({ host: child, parent: h.host });
+            visited[child] = true;
+        }
+
+        data.push(...ns.ps(h.host));
+    }
+
+    return data;
+}
 
 
 

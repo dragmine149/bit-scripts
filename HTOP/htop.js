@@ -1,13 +1,22 @@
 import { terminalInsert, setCSS, tailWindow, removeElement } from 'HTOP/console-doc.js';
-import { secondsToDhms, getRam, progressBar, getConfiguration } from 'HTOP/utils.js';
+import { secondsToDhms, getRam, progressBar, getConfiguration, DFS } from 'HTOP/utils.js';
 
 const doc = eval('document');
 const process_title = `<tr id="Info" class="Info"><td>PID</td><td>SERVER</td><td>MEM</td><td>UPTIME</td><td>COMMAND</td><td>ARGS</td><td>THREADS</td></tr>`;
+
+function getProcesses(ns, runOptions) {
+  if (runOptions.all_servers) {
+    return DFS(ns, runOptions.server);
+  }
+
+  return ns.ps(runOptions.server);
+}
+
 /**
  * @param {NS} ns
  */
 export function generateProcesses(ns, runOptions) {
-  let processes = ns.ps(runOptions.server);
+  let processes = getProcesses(ns, runOptions);
   let html = '';
   for (let p of processes) {
     let script = ns.getRunningScript(p.pid);
@@ -35,7 +44,7 @@ export function generateProcessInfo(ns, id) {
   html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)} </span><span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
   html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)} </span><span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
   html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)} </span><span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
-  html += `<td id="p-${script.pid}"><a class="P-nano" id="P-nano">[Edit]</a><a class="P-tail" id="P-tail">[Tail]</a><a class="P-restart" id="P-restart">[Restart]</a><a class="P-kill" id="P-kill">[Kill]</a></td>`;
+  html += `<td id="p-${script.pid}"><a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a><a class="P-tail" id="P-tail">[Tail]</a><a class="P-restart" id="P-restart">[Restart]</a><a class="P-kill" id="P-kill">[Kill]</a></td>`;
 
   return html;
 }
@@ -79,13 +88,14 @@ export async function generateUI(ns, runOptions) {
 
   let ram = getRam(ns, runOptions.server);
   let server = ns.getServer(runOptions.server);
+  let resetInfo = ns.getResetInfo();
 
-  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span>`;
+  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER"></span>`;
   html += `<table><tr><td>`;
   html += `${progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50)}`;
-  html += `</td><td id="Tasks" class="Tasks">Tasks: ${ns.ps(runOptions.server).length}</td><td><a class="htop-quit">[Quit]</a></tr>`;
+  html += `</td><td id="Tasks" class="Tasks">Tasks: ${getProcesses(ns, runOptions).length}</td><td><a class="htop-quit">[Quit]</a></tr>`;
   html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${server.cpuCores}</span></td></tr></table></td>`;
-  html += `<td id="Uptime" class="Uptime">Uptime: ${secondsToDhms((Date.now() - ns.getResetInfo().lastAugReset) / 1000)}</td></tr></table>`;
+  html += `<td id="Uptime" class="Uptime">Uptime: ${secondsToDhms((Date.now() - (resetInfo.lastAugReset + resetInfo.lastNodeReset)) / 1000)}</td></tr></table>`;
   html += `<span>\n</span>`;
   html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Runtime</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
   html += `<tr id="Process-Info" class="Process-Info">${generateProcessInfo(ns, ns.pid)}</tr></table>`;
@@ -120,18 +130,22 @@ export async function updateUI(ns, runOptions) {
     try {
       let ram = getRam(ns, runOptions.server);
       let server = ns.getServer();
+      let resetInfo = ns.getResetInfo();
 
       // update parts of the ui.
       doc.getElementById("ram").innerHTML = progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50);
-      doc.getElementById("Tasks").innerHTML = `Tasks: ${ns.ps(runOptions.server).length}`;
+      doc.getElementById("Tasks").innerHTML = `Tasks: ${getProcesses(ns, runOptions).length}`;
       doc.getElementById("Cores").innerHTML = `Cores: ${server.cpuCores}`;
-      doc.getElementById("Uptime").innerHTML = `Uptime: ${secondsToDhms((Date.now() - ns.getResetInfo().lastAugReset) / 1000)}`;
+      doc.getElementById("Uptime").innerHTML = `Uptime: ${secondsToDhms((Date.now() - (resetInfo.lastAugReset + resetInfo.lastNodeReset)) / 1000)}`;
       doc.getElementById("htop-Process").innerHTML = `${process_title}${generateProcesses(ns, runOptions)}`;
 
 
       // click detection for the command and quit buttons
       doc.querySelectorAll(".htop-Process .Process-Click").forEach(button => button
-        .addEventListener('click', (e) => doc.getElementById("P_HID_INFO").innerHTML = e.target.id.split('-')[1]));
+        .addEventListener('click', (e) => {
+          doc.getElementById("P_HID_INFO").innerHTML = e.target.id.split('-')[1]
+          doc.getElementById("P_HID_SERVER").innerHTML = e.target.parentNode.parentNode.children[1].innerText;
+        }));
 
       doc.querySelectorAll(".htop-quit").forEach((button) => {
         button.addEventListener('click', () => {
@@ -152,6 +166,7 @@ const argsSchema = [
   ['delay', 5000], // The default delay of updating the process list. (Does not effect the individual process). Note: it is not recommened to go below 250 (1/4s due to how the script works.)
   ['use_tail', false], // Use the tail UI instead of inserting it into the console.
   ['server', 'home'], // The server to query.
+  ['all_servers', false], // Whever to show details for all servers.
 ];
 
 export function autocomplete(data, args) {
