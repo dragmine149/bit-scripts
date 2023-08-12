@@ -6,21 +6,19 @@ export async function main(ns) {
   let ramOptional = ns.getScriptRam('HTOP/rs.js', 'home');
   let serverRam = getRam(ns, 'home');
 
-  ns.tprint(ramCost);
-  ns.tprint(ramOptional);
-
   if (serverRam.max - serverRam.used <= 20) {
     ns.tprint("WARNING: LOW RAM DETECTED. SOME SCRIPTS MIGHT NOT BE ABLE TO RUN (Recommended, at least more than 20gb)")
   }
 
-  ns.tprint(`
+  ns.tprint(`INFO:
   Ram Requirements:
   
-  INFO minimul: ${ns.formatRam(ramCost)} (Main htop script + runner)
-  INFO optional: ${ns.formatRam(ramOptional)} (Restart script)
+  minimul: ${ns.formatRam(ramCost)} (Main htop script + runner)
+  optional: ${ns.formatRam(ramOptional)} (Restart script)
 
-  INFO Total: ${ns.formatRam(ramCost + ramOptional)}
+  Total: ${ns.formatRam(ramCost + ramOptional)}
+  Recommended: At least 20GB.
 
-  INFO Server Ram: ${ns.formatRam(serverRam.max)}
+  Server Ram: ${ns.formatRam(serverRam.max)}
   `)
 }

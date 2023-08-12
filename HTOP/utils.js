@@ -40,6 +40,8 @@ export function getRam(ns, host) {
     "max": ns.getServerMaxRam(host)
   };
 
+  r["free"] = r.used - r.max;
+
   return r;
 }
 

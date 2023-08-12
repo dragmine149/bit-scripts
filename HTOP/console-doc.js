@@ -12,7 +12,7 @@ export function terminalInsert(html) {
  * @param {NS} ns
  * @param {number} hostScriptID
  */
-export function tailWindow(ns, hostScriptID, data, html) {
+export function tailWindow(ns, hostScriptID, data, html, title='') {
   ns.tail(hostScriptID);
   const logArea = [...doc.querySelectorAll(".react-draggable .react-resizable")].pop();
   logArea.children[1].style.display = "none";
@@ -24,6 +24,13 @@ export function tailWindow(ns, hostScriptID, data, html) {
   logArea.lastChild.innerHTML = html;
   ns.resizeTail(data.width, data.height);
   ns.moveTail(data.x, data.y);
+
+  if (title == '') {
+    let script = ns.getRunningScript(hostScriptID);
+    title = script.filename + script.args;
+  }
+
+  ns.setTitle(title, hostScriptID);
 
   return logArea;
 }

@@ -1,6 +1,6 @@
 import {generateProcessInfo} from 'HTOP/htop.js';
 import {setNavCommand} from 'HTOP/console-doc.js';
-import {getRoute} from 'HTOP/utils.js';
+import {getRoute, getRam} from 'HTOP/utils.js';
 
 /**
  * This is a whole different script meant to run along side the main `htop.js`
@@ -46,12 +46,16 @@ export async function main(ns) {
           doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
         });
       })
-      doc.querySelectorAll(".P-restart").forEach((button) => {
-        button.addEventListener('click', () => {
-          doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "restart";
-          doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
-        });
-      })
+
+      let ram = getRam(ns, "home");
+      if (ram.free >= 4.2) {
+        doc.querySelectorAll(".P-restart").forEach((button) => {
+          button.addEventListener('click', () => {
+            doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "restart";
+            doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
+          });
+        })
+      }
       doc.querySelectorAll(".P-kill").forEach((button) => {
         button.addEventListener('click', () => {
           doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "kill";
@@ -65,22 +69,45 @@ export async function main(ns) {
         switch (acTC) {
           case 'kill':
             ns.kill(acPID);
+            ns.toast(`Killed ${acPID}`);
             doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
             doc.getElementById("P_HID_SERVER").innerText = 'home';
             break;
           
           case 'tail':
-            ns.tail(acPID, ns.args[0]);
+            ns.tail(acPID);
+            ns.toast(`Tailed ${acPID}`);
             break;
           
           case 'restart':
             ns.run('HTOP/rs.js', 1, acPID);
+            ns.toast(`Restarted ${acPID}`);
             doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
             doc.getElementById("P_HID_SERVER").innerText = 'home';
             break;
         }
 
         doc.getElementById("P_HID_ACTION").innerHTML = `<span></span><span></span>`;
+      }
+
+      doc.querySelectorAll(".collaspe").forEach((button) => {
+        button.addEventListener('click', () => {
+          let classes = doc.getElementById("htop").classList;
+
+          if (classes.contains('htop-hidden')) {
+            classes.remove('htop-hidden');
+            doc.getElementById("htop-restore").classList.add("htop-hidden");
+          } else {
+            classes.add('htop-hidden');
+            doc.getElementById("htop-restore").classList.remove("htop-hidden");
+          }
+        })
+      })
+
+      if (doc.getElementById("htop").classList.contains("htop-hidden")) {
+        ns.resizeTail(325, 75, ns.args[0]);
+      } else {
+        ns.resizeTail(1275, 360, ns.args[0]);
       }
     }
     await ns.sleep(250);
