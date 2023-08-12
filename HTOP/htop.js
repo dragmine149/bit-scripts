@@ -33,6 +33,7 @@ export function generateProcessInfo(ns, id) {
   html += `<td>${ns.formatRam(script.ramUsage * script.threads)} (${ns.formatRam(script.ramUsage)}/t)</td><td>${script.threads}</td>`;
   html += `<td>${script.args}</td><td>${script.temporary}</td>`;
   html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)} </span><span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
+  html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)} </span><span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
   html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)} </span><span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
   html += `<td id="p-${script.pid}"><a class="P-nano" id="P-nano">[Edit]</a><a class="P-tail" id="P-tail">[Tail]</a><a class="P-restart" id="P-restart">[Restart]</a><a class="P-kill" id="P-kill">[Kill]</a></td>`;
 
@@ -86,7 +87,7 @@ export async function generateUI(ns, runOptions) {
   html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${server.cpuCores}</span></td></tr></table></td>`;
   html += `<td id="Uptime" class="Uptime">Uptime: ${secondsToDhms((Date.now() - ns.getResetInfo().lastAugReset) / 1000)}</td></tr></table>`;
   html += `<span>\n</span>`;
-  html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
+  html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Runtime</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
   html += `<tr id="Process-Info" class="Process-Info">${generateProcessInfo(ns, ns.pid)}</tr></table>`;
   html += `<span>\n</span>`;
   html += `<table id="htop-Process" class="htop-Process">${process_title}${generateProcesses(ns, runOptions)}</table></span>`;
