@@ -108,7 +108,7 @@ export async function pull(ns) {
             continue;
         }
 
-        ns.tprint(`INFO: Downloaded ${fileURL}/${file.path}`);
+        ns.tprint(`INFO: Downloaded ${fileURL}${file.path}`);
     }
 
     updateVersionFile(ns, folderName);
