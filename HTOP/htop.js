@@ -180,10 +180,25 @@ const argsSchema = [
   ['fquit', false], // Force quit all previous ui elements.
 ];
 
+
+/**
+ * @param {{
+*      servers: string[];
+*      txts: string[];
+*      scripts: string[];
+*      flags: (schema: [string, string | number | boolean | string[]][]) => { [key: string]: string[] | ScriptArg; }
+* }} data
+* @param {string[]} args
+*/
 export function autocomplete(data, args) {
-  data.flags(argsSchema);
-  return [];
+ data.flags(argsSchema);
+ if (args.slice(args.length - 2).includes("--server")) {
+   return [...data.servers];
+ }
+
+ return [];
 }
+
 
 /** @param {NS} ns */
 export function die(ns) {
