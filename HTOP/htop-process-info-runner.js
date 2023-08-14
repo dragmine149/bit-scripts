@@ -1,6 +1,6 @@
 import {generateProcessInfo} from 'HTOP/htop.js';
 import {setNavCommand} from 'HTOP/console-doc.js';
-import {getRoute, getRam} from 'HTOP/utils.js';
+import {getRoute} from 'HTOP/utils.js';
 
 /**
  * This is a whole different script meant to run along side the main `htop.js`
@@ -48,15 +48,14 @@ export async function main(ns) {
         });
       })
 
-      let ram = getRam(ns, "home");
-      if (ram.free >= 4.2) {
-        doc.querySelectorAll(".P-restart").forEach((button) => {
-          button.addEventListener('click', () => {
+      doc.querySelectorAll(".P-restart").forEach((button) => {
+        button.addEventListener('click', (e) => {
+          if (e.isTrusted) {
             doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "restart";
             doc.getElementById("P_HID_ACTION").lastElementChild.textContent = button.parentNode.id.split('-')[1];
-          });
-        })
-      }
+          }
+        });
+      })
       doc.querySelectorAll(".P-kill").forEach((button) => {
         button.addEventListener('click', () => {
           doc.getElementById("P_HID_ACTION").firstElementChild.textContent = "kill";

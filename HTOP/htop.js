@@ -1,15 +1,54 @@
 import { terminalInsert, setCSS, tailWindow, removeElement } from 'HTOP/console-doc.js';
-import { secondsToDhms, getRam, progressBar, getConfiguration, DFS, getResetTime, getServerFromHTML } from 'HTOP/utils.js';
+import { secondsToDhms, getRam, progressBar2, getConfiguration, DFS, getResetTime, getServerFromHTML, getRamAllServers, getServerColour } from 'HTOP/utils.js';
 
 const doc = eval('document');
 const process_title = `<thead><tr id="Info" class="Info"><th>PID</th><th>SERVER</th><th>MEM</th><th>UPTIME</th><th>COMMAND</th><th>ARGS</th><th>THREADS</th></tr></thead>`;
 
 function getProcesses(ns, runOptions) {
   if (runOptions.all_servers) {
-    return DFS(ns, runOptions.server);
+    return DFS(ns, runOptions.server)[0];
   }
 
   return ns.ps(runOptions.server);
+}
+
+/**
+ * @param {NS} ns
+ */
+function generateProgressBar(ns, runOptions) {
+  let getRamText = (ram) => `${ns.formatRam(ram.used)}/${ns.formatRam(ram.max)}`;
+
+  if (runOptions.all_servers) {
+    let ram = getRamAllServers(ns, runOptions.server);
+    let servers = DFS(ns, runOptions.server)[1];
+    let pbData = {};
+
+    for (let server of servers) {
+      let sRam = getRam(ns, server);
+      pbData[server] = {
+        'sym': `<span style="${getServerFromHTML(runOptions.server) == server ? 'background:' + getServerColour(ns, server) + '; color:#fff;' : ''}">|</span>`,
+        'percent': sRam.used / ram.max,
+        'hex': getServerColour(ns, server)
+      };
+    }
+    pbData['empty'] = {
+      'sym': ' ',
+      'percent': 1 - (ram.used / ram.max),
+      'hex': '000'
+    };
+
+    return progressBar2(pbData, getRamText(ram), 50, true, {
+      'cls': 'ram',
+      'id': 'ram'
+    });
+  }
+
+  let ram = getRam(ns, getServerFromHTML(runOptions.server));
+  return progressBar2({
+    'filled': {'sym': '|', 'percent': ram.used / ram.max, 'hex': getServerColour(ns, getServerFromHTML(runOptions.server))},
+    'empty': {'sym': ' ', 'percent': 1 - (ram.used / ram.max), 'hex': '000'}
+  }, getRamText(ram), 50, true, {'cls': 'ram', 'id': 'ram'}
+  );
 }
 
 /**
@@ -21,7 +60,7 @@ export function generateProcesses(ns, runOptions) {
   for (let p of processes) {
     let script = ns.getRunningScript(p.pid);
     html += `<tr id="htop-${p.pid}" class="mProcess"><td id="PID">${p.pid}</td>`;
-    html += `<td>${script.server}</td>`;
+    html += `<td ${runOptions.colour ? 'style="color:' + getServerColour(ns, script.server) + ';"' : ''}>${script.server}</td>`;
     html += `<td>${ns.formatRam(script.ramUsage * p.threads)} ${p.threads > 1 ? `(${ns.formatRam(script.ramUsage)}/thread)` : ``}</td>`;
     html += `<td>${secondsToDhms(script.onlineRunningTime, true)}</td>`;
     html += `<td class="Command Process-Click"><a id="p-${p.pid}">${p.filename}</a></td>`;
@@ -50,7 +89,7 @@ export function generateProcessInfo(ns, id) {
   html += `<a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a>`
   html += `<a class="P-tail" id="P-tail">[Tail]</a>`
   html += `<a class="P-restart" id="P-restart" ${ram.free >= 4.2 ? '' : 'hidden'}>[Restart]</a>`
-  html += `<a class="P-kill" id="P-kill">[Kill]</a></td>`;
+  html += `<a class="P-kill" id="P-kill">[Kill]</a></td>`;      // Hex colour code generator: https://stackoverflow.com/a/5365036/14621075
 
   return html;
 }
@@ -97,15 +136,14 @@ export async function generateUI(ns, runOptions) {
 
   setCSS("htopcss", css);
 
-  let ram = getRam(ns, getServerFromHTML(runOptions.server));
-  let server = ns.getServer(runOptions.server);
+  let cores = ns.read("HTOP/cores.txt");
   let uptime = getResetTime(ns);
 
   let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER" hidden></span>`;
   html += `<table><tr><td>`;
-  html += `${progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50)}`;
+  html += `${generateProgressBar(ns, runOptions)}`;
   html += `</td><td id="Tasks" class="Tasks">Tasks: ${getProcesses(ns, runOptions).length}</td><td><a class="htop-mini collaspe" ${runOptions.use_tail ? '' : 'hidden'}>[Minimise]</a><a class="htop-quit">[Quit]</a></td></tr>`;
-  html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${server.cpuCores}\nServer: ${runOptions.server}</span></td></tr></table></td>`;
+  html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${cores}\nServer: ${runOptions.server}</span></td></tr></table></td>`;
   html += `<td id="Uptime" class="Uptime">Uptime: ${uptime.augment} ${uptime.node}\n${uptime.total}</td></tr></table>`;
   html += `<span>\n</span>`;
   html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Runtime</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
@@ -134,20 +172,25 @@ export async function generateUI(ns, runOptions) {
  * @param {NS} ns
  */
 export async function updateUI(ns, runOptions) {
+  let oldServer = runOptions.server;
   while (true) {
     if (!ns.scriptRunning('HTOP/htop-process-info-runner.js', 'home')) {
       ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
     }
 
+    if (oldServer != getServerFromHTML(oldServer)) {
+      ns.run("HTOP/cpu.js", 1, getServerFromHTML(runOptions.server));
+      oldServer = getServerFromHTML(oldServer);
+    }
+
     try {
-      let ram = getRam(ns, getServerFromHTML(runOptions.server));
-      let server = ns.getServer(getServerFromHTML(runOptions.server));
+      let cores = ns.read("HTOP/cores.txt");
       let uptime = getResetTime(ns);
 
       // update parts of the ui.
-      doc.getElementById("ram").innerHTML = progressBar(ram.used, ram.max, ns.formatRam(ram.used), ns.formatRam(ram.max), { 'parent': 'ram', 'filled': 'used', 'empty': 'free' }, 50);
+      doc.getElementById("ram").innerHTML = generateProgressBar(ns, runOptions);
       doc.getElementById("Tasks").innerHTML = `Tasks: ${getProcesses(ns, runOptions).length}`;
-      doc.getElementById("Cores").innerHTML = `Cores: ${server.cpuCores}\nServer: ${getServerFromHTML(runOptions.server)}`;
+      doc.getElementById("Cores").innerHTML = `Cores: ${cores}\nServer: ${getServerFromHTML(runOptions.server)}`;
       doc.getElementById("Uptime").innerHTML = `Uptime: ${uptime.augment}${uptime.node}\n${uptime.total}`;
       doc.getElementById("htop-Process").innerHTML = `${process_title}${generateProcesses(ns, runOptions)}`;
 
@@ -178,12 +221,28 @@ const argsSchema = [
   ['server', 'home'], // The server to query.
   ['all_servers', false], // Whever to show details for all servers.
   ['fquit', false], // Force quit all previous ui elements.
+  ['colour', true], // Whever to have the servers their set colour
 ];
 
+
+/**
+ * @param {{
+*      servers: string[];
+*      txts: string[];
+*      scripts: string[];
+*      flags: (schema: [string, string | number | boolean | string[]][]) => { [key: string]: string[] | ScriptArg; }
+* }} data
+* @param {string[]} args
+*/
 export function autocomplete(data, args) {
-  data.flags(argsSchema);
-  return [];
+ data.flags(argsSchema);
+ if (args.slice(args.length - 2).includes("--server")) {
+   return [...data.servers];
+ }
+
+ return [];
 }
+
 
 /** @param {NS} ns */
 export function die(ns) {
@@ -218,13 +277,13 @@ export async function main(ns) {
     ns.exit();
   }
 
-
   ns.disableLog("ALL");
   ns.atExit(() => die(ns));
   await generateUI(ns, runOptions);
 
   // the main "loop". with the double scripts.
   ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
+  ns.run("HTOP/cpu.js", 1, runOptions.server);
 
   await updateUI(ns, runOptions);
 }

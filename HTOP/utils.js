@@ -37,10 +37,11 @@ export function getResetTime(ns) {
 export function getRam(ns, host) {
   let r = {
     "used": ns.getServerUsedRam(host),
-    "max": ns.getServerMaxRam(host)
+    "max": ns.getServerMaxRam(host),
+    "free": 0
   };
 
-  r["free"] = r.max - r.used;
+  r.free = r.max - r.used;
 
   return r;
 }
@@ -55,35 +56,62 @@ export function getServerFromHTML(defaultServer='home') {
     return info == '' ? defaultServer : info;
 }
 
-/**
- * @param {number} n1 - First number
- * @param {number} n2 - Second number
- * @param {string} v1 - value of the first number. Defaults to n1
- * @param {string} v2 - value of the second number. Defaults to n2
- * @param {object} cssData - Data to use for the css. (parent, filled, empty)
- * @param {number} length - Length of the progress bar (characters) 
- * @returns html `span` class element.
- */
-export function progressBar(n1, n2, v1 = null, v2 = null, cssData, length = 25) {
-  v1 = v1 == null ? n1 : v1;
-  v2 = v2 == null ? n2 : v2;
+export function progressBar2(progressData, nums='', length=50, html=false, cssData) {
+    // progress bar stuff.
+    let progress = `[`;
 
-  let progress = n1 / n2;
-  progress = Math.min(1, progress) || 0;
-  return `<span class=${cssData['parent']} id=${cssData['parent']}>${cssData['parent']}[<span class=${cssData['filled']}>${'|'.repeat(Math.floor(length * progress))}</span><span class=${cssData['empty']}>${' '.repeat(Math.ceil(length * (1 - progress)))}</span>${v1}/${v2}]</span>`;
+    Object.values(progressData).forEach((key) => {
+        let tempInf = ``;
+        tempInf += `${key.sym}`.repeat(Math.floor(length * key.percent));
+        if (html) {
+            tempInf = `<span style="color:${key.hex};">` + tempInf + `</span>`;
+        }
+        progress += tempInf;
+    })
+
+    progress += nums + `]`;
+
+    if (html) {
+        progress = `<span class="${cssData.cls}" id="${cssData.id}">` + progress + `</span>`;
+    }
+
+    return progress;
+}
+
+/**
+ * @param {NS} ns
+ * @param {string} runServer
+ */
+export function getRamAllServers(ns, runServer) {
+    let servers = DFS(ns, runServer, true)[1];
+    let totalRam = {
+        "used": 0,
+        "free": 0,
+        "max": 0
+    }
+
+
+    for (let server of servers) {
+        let ram = getRam(ns, server);
+        totalRam.free += ram.free;
+        totalRam.used += ram.used;
+        totalRam.max += ram.max;
+    }
+
+    return totalRam;
 }
 
 
 export function getRoute(ns, server) {
     const serverInfo = (serverName) => {
             // Costs 2 GB. If you can't don't need backdoor links, uncomment and use the alternate implementations below
-            return ns.getServer(serverName)
-            /* return {
-                requiredHackingSkill: ns.getServerRequiredHackingLevel(serverName),
-                hasAdminRights: ns.hasRootAccess(serverName),
+            // return ns.getServer(serverName)
+            return {
+                // requiredHackingSkill: ns.getServerRequiredHackingLevel(serverName),
+                // hasAdminRights: ns.hasRootAccess(serverName),
                 purchasedByPlayer: serverName.includes('daemon') || serverName.includes('hacknet'),
-                backdoorInstalled: true // No way of knowing without ns.getServer
-            } */
+                backdoorInstalled: false // No way of knowing without ns.getServer
+            }
         }
     const ordering = (serverA, serverB) => {
             // Sort servers with fewer connections towards the top.
@@ -122,7 +150,9 @@ export function getRoute(ns, server) {
 export function DFS(ns, host) {
     let visited = { [host]: true };
     let stack = [{ host, parent: null }];
-    let data = []
+    let data = [];
+    let hosts = [];
+    let all = [];
     while (stack.length !== 0) {
         let h = stack.pop();
         for (let child of ns.scan(h.host)) {
@@ -132,14 +162,53 @@ export function DFS(ns, host) {
             visited[child] = true;
         }
 
-        data.push(...ns.ps(h.host));
+        let pss = ns.ps(h.host);
+        data.push(...pss);
+        if (pss.length > 0) {
+            hosts.push(h.host);
+        }
+        all.push(h.host);
     }
 
-    return data;
+    return [data, hosts, all];
 }
 
+const randomHighContrastHexColor = () => '#' + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0');
 
+/**
+ * @param {NS} ns
+ */
+export function generateColourForServer(ns) {
+    let servers = DFS(ns, "home")[2];
+    let data = {};
 
+    for (let sv of servers) {
+        data[sv] = randomHighContrastHexColor();
+    }
+
+    ns.write('HTOP/server_data.json.txt', JSON.stringify(data));
+}
+
+/**
+ * @param {NS} ns
+ * @param {string} server
+ */
+export function getServerColour(ns, server) {
+    if (!ns.fileExists('HTOP/server_data.json.txt')) {
+        generateColourForServer(ns)
+    }
+
+    let serverColours = ns.read('HTOP/server_data.json.txt');
+    serverColours = JSON.parse(serverColours);
+    let colour = serverColours[server];
+    if (colour == null || colour == undefined || colour == '') {
+        serverColours[server] = randomHighContrastHexColor();
+        ns.write('HTOP/server_data.json.txt', JSON.stringify(serverColours));
+        colour = serverColours[server];
+    }
+
+    return colour;
+}
 
 
 
