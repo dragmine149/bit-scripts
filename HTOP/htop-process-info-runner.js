@@ -74,10 +74,15 @@ export async function main(ns) {
       if (acTC != '') {
         switch (acTC) {
           case 'kill':
-            ns.kill(acPID);
-            ns.toast(`Killed ${acPID}`);
-            doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
+            doc.getElementById("P_HID_INFO").innerText = ns.pid;
             doc.getElementById("P_HID_SERVER").innerText = 'home';
+
+            if (acPID == ns.pid) {
+              doc.getElementById("P_HID_INFO").innerText = doc.getElementById("PH_D_INF").innerText;
+            }
+
+            ns.toast(`Killed ${acPID}`);
+            ns.kill(acPID);
             break;
           
           case 'tail':

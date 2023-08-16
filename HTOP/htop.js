@@ -3,6 +3,7 @@ import { secondsToDhms, getRam, progressBar2, getConfiguration, DFS, getResetTim
 
 const doc = eval('document');
 const process_title = `<thead><tr id="Info" class="Info"><th>PID</th><th>SERVER</th><th>MEM</th><th>UPTIME</th><th>COMMAND</th><th>ARGS</th><th>THREADS</th></tr></thead>`;
+const getRamText = (ns, ram) => `${ns.formatRam(ram.used)}/${ns.formatRam(ram.max)}`;
 
 function getProcesses(ns, runOptions) {
   if (runOptions.all_servers) {
@@ -16,8 +17,6 @@ function getProcesses(ns, runOptions) {
  * @param {NS} ns
  */
 function generateProgressBar(ns, runOptions) {
-  let getRamText = (ram) => `${ns.formatRam(ram.used)}/${ns.formatRam(ram.max)}`;
-
   if (runOptions.all_servers) {
     let ram = getRamAllServers(ns, runOptions.server);
     let servers = DFS(ns, runOptions.server)[1];
@@ -37,7 +36,7 @@ function generateProgressBar(ns, runOptions) {
       'hex': '000'
     };
 
-    return progressBar2(pbData, getRamText(ram), 50, true, {
+    return progressBar2(pbData, getRamText(ns, ram), 50, true, {
       'cls': 'ram',
       'id': 'ram'
     });
@@ -47,7 +46,7 @@ function generateProgressBar(ns, runOptions) {
   return progressBar2({
     'filled': {'sym': '|', 'percent': ram.used / ram.max, 'hex': getServerColour(ns, getServerFromHTML(runOptions.server))},
     'empty': {'sym': ' ', 'percent': 1 - (ram.used / ram.max), 'hex': '000'}
-  }, getRamText(ram), 50, true, {'cls': 'ram', 'id': 'ram'}
+  }, getRamText(ns, ram), 50, true, {'cls': 'ram', 'id': 'ram'}
   );
 }
 
@@ -77,17 +76,21 @@ export function generateProcesses(ns, runOptions) {
  */
 export function generateProcessInfo(ns, id) {
   let script = ns.getRunningScript(id);
+  if (script == null) {
+    ns.toast("Invalid script ID.");
+    return;
+  }
   let ram = getRam(ns, "home");
 
   let html = `<td>${script.pid}</td><td id="p-filename-n">${script.filename}</td>`;
   html += `<td>${ns.formatRam(script.ramUsage * script.threads)} (${ns.formatRam(script.ramUsage)}/t)</td><td>${script.threads}</td>`;
   html += `<td>${script.args}</td><td>${script.temporary}</td>`;
-  html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)} </span><span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
-  html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)} </span><span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
-  html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)} </span><span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
+  html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)}</span>\n<span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
+  html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)}</span>\n<span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
+  html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)}</span>\n<span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
   html += `<td id="p-${script.pid}">`;
   html += `<a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a>`
-  html += `<a class="P-tail" id="P-tail">[Tail]</a>`
+  html += `<a class="P-tail" id="P-tail">[Tail]</a>\n`
   html += `<a class="P-restart" id="P-restart" ${ram.free >= 4.2 ? '' : 'hidden'}>[Restart]</a>`
   html += `<a class="P-kill" id="P-kill">[Kill]</a></td>`;      // Hex colour code generator: https://stackoverflow.com/a/5365036/14621075
 
@@ -120,7 +123,7 @@ export async function generateUI(ns, runOptions) {
     .Process-Info {color:#fff; text-align:right;}
     .Process-Main {background:#0ff; color:#000; text-align:right;}
     .P-online {color:#0f0;}
-    .P-offline {color:#ff0f00;}
+    .P-offline {color:#ff0f5f;}
     .P-nano {cursor:pointer; text-decoration:underline; color:#bc4e1f;}
     .P-restart {cursor:pointer; text-decoration:underline; color:#0ff;}
     .P-kill {cursor:pointer; text-decoration:underline; color:#f10;}
@@ -136,14 +139,14 @@ export async function generateUI(ns, runOptions) {
 
   setCSS("htopcss", css);
 
-  let cores = ns.read("HTOP/cores.txt");
   let uptime = getResetTime(ns);
+  const ram = getRam(ns, runOptions.server);
 
-  let html = `<span id="htop" class="htop-main"><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER" hidden></span>`;
+  let html = `<span id="htop" class="htop-main"><span id="PH_D_INF" hidden>${ns.pid}</span><span id="P_HID_INFO" hidden>${ns.pid}</span><span id="P_HID_ACTION" hidden><span id="action"></span><span id="pid"></span></span><span id="P_HID_SERVER" hidden></span>`;
   html += `<table><tr><td>`;
   html += `${generateProgressBar(ns, runOptions)}`;
   html += `</td><td id="Tasks" class="Tasks">Tasks: ${getProcesses(ns, runOptions).length}</td><td><a class="htop-mini collaspe" ${runOptions.use_tail ? '' : 'hidden'}>[Minimise]</a><a class="htop-quit">[Quit]</a></td></tr>`;
-  html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Cores: ${cores}\nServer: ${runOptions.server}</span></td></tr></table></td>`;
+  html += `<tr><td><table><tr><td><span id="Cores" class="Cores">Server: ${runOptions.server}\nRAM: ${getRamText(ns, ram)}</span></td></tr></table></td>`;
   html += `<td id="Uptime" class="Uptime">Uptime: ${uptime.augment} ${uptime.node}\n${uptime.total}</td></tr></table>`;
   html += `<span>\n</span>`;
   html += `<table><tr class="Process-Main"><td>Process</td><td>Filename</td><td>Memory</td><td>Threads</td><td>Args</td><td>Temporary</td><td>Runtime</td><td>Exp gained</td><td>Money Made</td><td>Options</td></tr>`;
@@ -172,25 +175,22 @@ export async function generateUI(ns, runOptions) {
  * @param {NS} ns
  */
 export async function updateUI(ns, runOptions) {
-  let oldServer = runOptions.server;
   while (true) {
-    if (!ns.scriptRunning('HTOP/htop-process-info-runner.js', 'home')) {
+    // so although we could use `ns.isRunning` we still use `ns.getRunningScript` as that is used elsewhere in this document.
+    // as it is being used elsewhere. `ns.isRunning` would just cost more RAM. 
+    // undefined here is just so we can skip the host name arg, and use the running server instead of doing `ns.getHostName()`
+    if (ns.getRunningScript('HTOP/htop-process-info-runner.js', undefined, ns.pid) == null) {
       ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
     }
 
-    if (oldServer != getServerFromHTML(oldServer)) {
-      ns.run("HTOP/cpu.js", 1, getServerFromHTML(runOptions.server));
-      oldServer = getServerFromHTML(oldServer);
-    }
-
     try {
-      let cores = ns.read("HTOP/cores.txt");
       let uptime = getResetTime(ns);
+      const ram = getRam(ns, getServerFromHTML(runOptions.server));
 
       // update parts of the ui.
       doc.getElementById("ram").innerHTML = generateProgressBar(ns, runOptions);
       doc.getElementById("Tasks").innerHTML = `Tasks: ${getProcesses(ns, runOptions).length}`;
-      doc.getElementById("Cores").innerHTML = `Cores: ${cores}\nServer: ${getServerFromHTML(runOptions.server)}`;
+      doc.getElementById("Cores").innerHTML = `Server: ${getServerFromHTML(runOptions.server)}\nRAM: ${getRamText(ns, ram)}`;
       doc.getElementById("Uptime").innerHTML = `Uptime: ${uptime.augment}${uptime.node}\n${uptime.total}`;
       doc.getElementById("htop-Process").innerHTML = `${process_title}${generateProcesses(ns, runOptions)}`;
 
@@ -220,7 +220,6 @@ const argsSchema = [
   ['use_tail', false], // Use the tail UI instead of inserting it into the console.
   ['server', 'home'], // The server to query.
   ['all_servers', false], // Whever to show details for all servers.
-  ['fquit', false], // Force quit all previous ui elements.
   ['colour', true], // Whever to have the servers their set colour
 ];
 
@@ -258,22 +257,15 @@ export async function main(ns) {
   if (ns.fileExists('Git/git.js')) {
     ns.run('Git/git.js', 1, '--ver', 'HTOP');
   } else {
+    // this only prints to log. It does not print to terminal.
     ns.print("Failed to check for new version due to missing Git module");
   }
 
   const runOptions = getConfiguration(ns, argsSchema);
   if (!runOptions) return; // Invalid options, or ran in --help mode.
 
-  if (runOptions.fquit) {
-    // if not running on home then well...
-    ns.scriptKill('HTOP/htop.js', 'home');
-    if (doc.getElementById("htop") != null) {
-      removeElement("htop");
-    }
-  }
-
   if (doc.getElementById("htop") != undefined) {
-    ns.tprint(`WARN: htop is already running in some way, shape or form. To force quit, use '--fquit'`);
+    ns.tprint(`WARN: htop is already running in some way, shape or form. (If not using tail mode. Click out and back into terminal to reset. If using tail mode, close the window. Else, 'ps' and kill the pid.)`);
     ns.exit();
   }
 
@@ -283,7 +275,6 @@ export async function main(ns) {
 
   // the main "loop". with the double scripts.
   ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
-  ns.run("HTOP/cpu.js", 1, runOptions.server);
 
   await updateUI(ns, runOptions);
 }

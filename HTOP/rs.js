@@ -24,7 +24,7 @@ export async function main(ns) {
   let scriptTitle = scriptInfo.title;
   let scriptFile = scriptInfo.filename;
   
-  ns.scriptKill(scriptFile, scriptInfo.server);
+  ns.kill(scriptFile, scriptInfo.server, ...scriptArgs);
   let id = ns.exec(scriptFile, scriptInfo.server, scriptThreads, ...scriptArgs);
 
   if (ns.args[1] != undefined) {
