@@ -86,8 +86,8 @@ export function generateProcessInfo(ns, id) {
   html += `<td>${ns.formatRam(script.ramUsage * script.threads)} (${ns.formatRam(script.ramUsage)}/t)</td><td>${script.threads}</td>`;
   html += `<td>${script.args}</td><td>${script.temporary}</td>`;
   html += `<td><span class="P-online">${secondsToDhms(script.onlineRunningTime, true)}</span>\n<span class="P-offline">${secondsToDhms(script.offlineRunningTime, true)}</span></td>`;
-  html += `<td><span class="P-online">${ns.formatNumber(script.offlineExpGained)}</span>\n<span class="P-offline">${ns.formatNumber(script.onlineExpGained)}</span></td>`;
-  html += `<td><span class="P-online">${ns.formatNumber(script.offlineMoneyMade)}</span>\n<span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
+  html += `<td><span class="P-online">${ns.formatNumber(script.onlineExpGained)}</span>\n<span class="P-offline">${ns.formatNumber(script.offlineExpGained)}</span></td>`;
+  html += `<td><span class="P-online">${ns.formatNumber(script.onlineMoneyMade)}</span>\n<span class="P-offline">${ns.formatNumber(script.offlineMoneyMade)}</span></td>`;
   html += `<td id="p-${script.pid}">`;
   html += `<a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a>`
   html += `<a class="P-tail" id="P-tail">[Tail]</a>\n`
