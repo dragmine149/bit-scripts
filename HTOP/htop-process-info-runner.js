@@ -89,10 +89,22 @@ export async function main(ns) {
             break;
           
           case 'restart':
-            ns.run('HTOP/rs.js', 1, acPID);
-            ns.toast(`Restarted ${acPID}`);
-            doc.getElementById("P_HID_INFO").innerHTML = ns.pid;
-            doc.getElementById("P_HID_SERVER").innerText = 'home';
+            let scriptInfo = ns.getRunningScript(acPID);
+            if (scriptInfo == null) {
+              ns.tprint("Somehow this script died before it could be restart as the provided pid is null.");
+              return false;
+            }
+            let scriptArgs = scriptInfo.args;
+            let scriptThreads = scriptInfo.threads;
+            let scriptTitle = scriptInfo.title;
+            let scriptFile = scriptInfo.filename;
+            
+            ns.kill(scriptFile, scriptInfo.server, ...scriptArgs);
+            let id = ns.exec(scriptFile, scriptInfo.server, scriptThreads, ...scriptArgs);
+
+            ns.toast("Restarted " + scriptTitle + `(${id})`);
+            doc.getElementById("P_HID_INFO").innerHTML = id;
+            doc.getElementById("P_HID_SERVER").innerText = scriptInfo.server;
             break;
 
           case 'exit':

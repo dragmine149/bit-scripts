@@ -80,7 +80,6 @@ export function generateProcessInfo(ns, id) {
     ns.toast("Invalid script ID.");
     return;
   }
-  let ram = getRam(ns, "home");
 
   let html = `<td>${script.pid}</td><td id="p-filename-n">${script.filename}</td>`;
   html += `<td>${ns.formatRam(script.ramUsage * script.threads)} (${ns.formatRam(script.ramUsage)}/t)</td><td>${script.threads}</td>`;
@@ -91,7 +90,7 @@ export function generateProcessInfo(ns, id) {
   html += `<td id="p-${script.pid}">`;
   html += `<a class="P-nano" id="P-nano" ${doc.getElementById("terminal") == undefined ? 'hidden' : ''}>[Edit]</a>`
   html += `<a class="P-tail" id="P-tail">[Tail]</a>\n`
-  html += `<a class="P-restart" id="P-restart" ${ram.free >= 4.2 ? '' : 'hidden'}>[Restart]</a>`
+  html += `<a class="P-restart" id="P-restart">[Restart]</a>`
   html += `<a class="P-kill" id="P-kill">[Kill]</a></td>`;      // Hex colour code generator: https://stackoverflow.com/a/5365036/14621075
 
   return html;
@@ -157,7 +156,7 @@ export async function generateUI(ns, runOptions) {
 
   if (runOptions.use_tail) {
     tailWindow(ns, ns.pid, {
-      'bc': '#505',
+      'bc': '#000',
       'c': '#20AB20',
       'font': '32px Courier',
       'x': 1267.6,

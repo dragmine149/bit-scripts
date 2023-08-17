@@ -4,31 +4,21 @@ import {getRam} from 'HTOP/utils.js';
 export async function main(ns) {
   let mainCost = ns.getScriptRam("HTOP/htop.js");
   let runnerCost = ns.getScriptRam("HTOP/htop-process-info-runner.js");
-  let restartCost = ns.getScriptRam("HTOP/rs.js");
   let serverRam = getRam(ns, 'home');
 
-  if (serverRam.max - serverRam.used <= Math.ceil(mainCost + runnerCost + restartCost)) {
+  if (serverRam.max - serverRam.used <= Math.ceil(mainCost + runnerCost)) {
     ns.tprint("WARNING: LOW RAM DETECTED. SOME SCRIPTS MIGHT NOT BE ABLE TO RUN (Recommended, at least more than 20gb)")
   }
 
   ns.tprint(`INFO:
   Ram Requirements:
-  
-  MINIMUM:
+
   Main Script: ${ns.formatRam(mainCost)}
   Runner Script: ${ns.formatRam(runnerCost)}
 
-  Optional:
-  Restart Script: ${ns.formatRam(restartCost)}
+  TOTAL: ${ns.formatRam(mainCost + runnerCost)}
+  Recommended in server: At least ${ns.formatRam(Math.pow(2, Math.ceil(Math.log2(mainCost + runnerCost))))}
 
-  TOTAL:
-  minimum: ${ns.formatRam(mainCost + runnerCost)}
-  optional: ${ns.formatRam(restartCost)}
-
-  Total: ${ns.formatRam(mainCost + runnerCost + restartCost)}
-  Recommended: At least ${ns.formatRam(Math.ceil(mainCost + runnerCost + restartCost))}
-
-
-  Server Ram: ${ns.formatRam(serverRam.max)}
+  Current Server Ram: ${ns.formatRam(serverRam.max)}
   `)
 }
