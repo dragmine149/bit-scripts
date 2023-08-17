@@ -12,19 +12,17 @@ import {getRoute} from 'HTOP/utils.js';
  * This script is also home to the other options that can be clicked on.
  */
 
-function routeDirect(ns, cmd, server) {
-  let route = getRoute(ns, server) + `;`;
-  route += cmd;
-  return route
-}
-
 /** @param {NS} ns */
-// NS arg[0] = htop PID
 export async function main(ns) {
-  // the first paramater will be the server name.
+  // NS arg[0] = htop PID
   const doc = eval('document');
+  const routeDirect = (ns, cmd, server) => getRoute(ns, server) + ';' + cmd;
 
-  while (ns.scriptRunning('HTOP/htop.js', 'home')) {
+  while (ns.getRunningScript(ns.args[0]) != null) {
+    if (ns.getRunningScript(ns.args[0]).filename != "HTOP/htop.js") {
+      ns.exit();
+    }
+
     if (doc.getElementById("P_HID_INFO") != null) {
       let server = doc.getElementById("P_HID_SERVER").innerText;
       if (server == '') {
