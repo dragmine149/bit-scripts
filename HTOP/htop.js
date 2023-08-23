@@ -179,7 +179,7 @@ export async function updateUI(ns, runOptions) {
     // as it is being used elsewhere. `ns.isRunning` would just cost more RAM. 
     // undefined here is just so we can skip the host name arg, and use the running server instead of doing `ns.getHostName()`
     if (ns.getRunningScript('HTOP/htop-process-info-runner.js', undefined, ns.pid) == null) {
-      ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
+      ns.run('HTOP/htop-process-info-runner.js', {temporary:true}, ns.pid);
     }
 
     try {
@@ -273,7 +273,7 @@ export async function main(ns) {
   await generateUI(ns, runOptions);
 
   // the main "loop". with the double scripts.
-  ns.run('HTOP/htop-process-info-runner.js', 1, ns.pid);
+  ns.run('HTOP/htop-process-info-runner.js', {temporary: true}, ns.pid);
 
   await updateUI(ns, runOptions);
 }
