@@ -199,7 +199,15 @@ export function getServerColour(ns, server) {
     }
 
     let serverColours = ns.read('HTOP/server_data.json.txt');
-    serverColours = JSON.parse(serverColours);
+    try {
+        serverColours = JSON.parse(serverColours);
+    } catch (e) {
+        ns.print("WARN: Failed to parse json data for server colours. Regenerating...");
+        generateColourForServer(ns);
+        serverColours = ns.read('HTOP/server_data.json.txt');
+        serverColours = JSON.parse(serverColours);
+    }
+
     let colour = serverColours[server];
     if (colour == null || colour == undefined || colour == '') {
         serverColours[server] = randomHighContrastHexColor();

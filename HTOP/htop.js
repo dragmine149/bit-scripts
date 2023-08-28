@@ -220,6 +220,7 @@ const argsSchema = [
   ['server', 'home'], // The server to query.
   ['all_servers', false], // Whever to show details for all servers.
   ['colour', true], // Whever to have the servers their set colour
+  ['new_colours', false], // Reset the colours generated and make new ones.
 ];
 
 
@@ -262,6 +263,13 @@ export async function main(ns) {
 
   const runOptions = getConfiguration(ns, argsSchema);
   if (!runOptions) return; // Invalid options, or ran in --help mode.
+
+  if (runOptions.new_colours) {
+    ns.write('HTOP/server_data.json.txt', '', 'w');
+    ns.tprint("Please run htop again. Colours will be regenerated on htop restart.");
+    // this is cheaper way of doing it. TODO: utils.js fix.
+    ns.exit();
+  }
 
   if (doc.getElementById("htop") != undefined) {
     ns.tprint(`WARN: htop is already running in some way, shape or form. (If not using tail mode. Click out and back into terminal to reset. If using tail mode, close the window. Else, 'ps' and kill the pid.)`);
