@@ -13,6 +13,27 @@ Most modules come with an `AutoStart.js` script. This will be ran once the modul
 
 If a module doesn't come with `AutoStart.js` the file to run is normally the same name as the module. E.g. `Htop/htop.js` where `htop.js` has the same name as the folder.
 
+## Module Information
+This section just contains information about what each module does. Although they are explained in their represented `--help` menus.
+
+### Git
+Commands and other basic git abilities.
+NOTE: might not work well with other repos.
+
+### HTOP
+A similar like clone of the `htop` command that can be downloaded using `apt` in terminals.
+Shows processes, ram usage, etc across all servers.
+
+### Testing
+Don't bother with this.. trust me.
+Its there to test if Git is working really.
+
+### py
+Using the ability of [`py-script`](https://pyscript.net) we now can run python code in `ns2`.
+Just be warned, this does require a bit of a workaround solution with some of the methods.
+Ram requirements is still a thing. (So don't except to get away with using `ns.singularity` for free.
+NOTE: this is works, however it is still in early beta stages as the backend javascript code needs to be cleaned up a bit.
+
 ## Other information
 Fell free to use any of these scripts and modify them how you see fit.
 Dont move the scripts outside of the folder they are dedicated for (as that can break the mmain module, just copy and paste if you need to do so).
