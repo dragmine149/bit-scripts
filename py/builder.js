@@ -3,8 +3,21 @@ import { setCSS, tailWindow, terminalInsert } from 'py/console-doc.js';
 /** @type {Document} */
 const doc = eval("document");
 
+let terminalTO = 5 * 1000;
+
 /** @param {NS} ns */
 export async function main(ns) {
+  if (doc.getElementById('pyns2js') != null) {
+    let terminal = doc.createElement('py-terminal');
+    await ns.sleep(terminalTO);
+    terminal.classList.add('pycss');
+    terminal.id = 'py-terminal-id';
+    ns.tprint('READY!');
+    
+    // to do, assign to tail window.
+    return;
+  }
+
   let css = `
   <style id="pycss">
     .py-css-main {white-space:pre; color:#ccc; font:14px monospace; line-height: 16px; }
@@ -39,7 +52,7 @@ export async function main(ns) {
 
 
   ns.tprint("Waiting for terminal to be initiated!");
-  await ns.sleep(5000);
+  await ns.sleep(terminalTO);
   ns.tprint("Checking and continuing...");
 
   let terminal = doc.getElementsByClassName('py-terminal').item(0); // it should only be the first item
@@ -48,6 +61,7 @@ export async function main(ns) {
   terminal.classList.add('pycss');
   terminal.id = "py-terminal-id";
 
-
   logArea.appendChild(terminal);
+
+  ns.tprint('READY!');
 }
