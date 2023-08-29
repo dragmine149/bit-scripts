@@ -6,6 +6,7 @@ const argsSchema = [
     ['repository', 'bit-scripts'],
     ['branch', 'main'],
     ['apiLimit', false], // Instead of listing the repo. Print out information about the api and rate limit.
+    ['log', ''], // Output the most recent log of a module.
     ['pull', ''], // Download a module
     ['json', false], // Show the json data of the api request.
     ['remove', ''], // Remove a module. (Better than deleting all the files)
@@ -34,6 +35,7 @@ async function generateHTMLOffListing(ns, item, url) {
     let gitMode = local == '-1' ? `[Download]` : `[Update]`;
 
     html += `<td>`
+    html += `<span id="git-log" class="git-log">[Log]</span>`;
     html += `<span id="${gitClass}" class="${gitClass}">${gitMode}</span>`;
 
     if (local != '-1') {
@@ -63,6 +65,7 @@ export async function generateHTML(ns) {
         `<style id="gitcss">
         .git-main {white-space:pre; color:#ccc; font:20px monospace; line-height: 16px; text-align:right;}
         .git-title {background:#0ff; color:#000;}
+        .git-log {cursor:pointer; text-decoration:underline; color:#c0297a;}
         .git-download {cursor:pointer; text-decoration:underline; color:#0ff;}
         .git-update {cursor:pointer; text-decoration:underline; color:#faf;}
         .git-remove {cursor:pointer; text-decoration:underline; color:#bf0a3c;}
@@ -82,6 +85,11 @@ function getModuleNameFromURL(ns, url) {
     }
 
     return folderName;
+}
+
+async function git_log(ns) {
+    let update = await getLatestUpdate(ns, getModuleNameFromURL(ns, options.log));
+    ns.tprint(`INFO: ${update.commit.message}`);
 }
 
 /** @param {NS} ns */
@@ -176,6 +184,11 @@ export async function main(ns) {
         ns.exit();
     }
 
+    if (options.log) {
+        await git_log(ns);
+        ns.exit();
+    }
+
     if (options.pull) {
         await pull(ns);
         ns.exit();
@@ -209,11 +222,12 @@ export async function main(ns) {
         ns.tprint(`WARNING: Running low on github API requests. (${limit.remaining} left. ${limit.used} used.)
         API limit reset happening at ${date.getDate()}/${date.getMonth()} ${date.getHours()}:${date.getMinutes()} (dd/mm hh/mm)
         
-        NOTE: this does not effect downloading files. Only listing out the repo`);
+        NOTE: You can still download files as that does not use the git API.`);
     }
 
     terminalInsert(await generateHTML(ns));
 
+    addCallback(".git-log", `run ${ns.getScriptName()} --log`);
     addCallback(".git-download", `run ${ns.getScriptName()} --pull`);
     addCallback(".git-update", `run ${ns.getScriptName()} --pull`);
     addCallback(".git-remove", `run ${ns.getScriptName()} --remove`);
@@ -335,6 +349,22 @@ async function repositoryListing(ns) {
     }
 }
 
+async function getLatestUpdate(ns, moduleName) {
+    const url = `https://api.github.com/repos/${options.github}/${options.repository}/commits?path=${moduleName}`;
+    let response = null;
+    try {
+        response = await fetch(url);
+        response = await response.json();
+        console.log(url);
+
+        return response[0];
+    } catch (error) {
+        ns.tprint(`WARNING: Failed to get the update information for ${moduleName} (request limit?): ${url}` +
+        `\nResponse Contents (if available): $.api-limit{JSON.stringify(response ?? '(N/A)')}\nERROR: ${String(error)}`);
+        ns.exit();
+    }
+}
+
 /** @param {NS} ns */
 async function printAPIInfo(ns) {
     let info = await getAPILimit(ns);
@@ -349,7 +379,8 @@ async function printAPIInfo(ns) {
     
     Reseting: ${date.getDate()}/${date.getMonth()} ${date.getHours()}:${date.getMinutes()} (dd/mm hh/mi)
     Note: you get 60/hour. The hour starts when you use your first api request.
-    Note: running ${ns.getScriptName()} does not nesseccarly take from your limit for that hour.`)
+    Note: running ${ns.getScriptName()} does not nesseccarly take from your limit for that hour.
+    Note: 99.9% of the time, you are unlickly to run out. Unless you are doing other things with the git api.`)
 }
 
 /** @param {NS} ns */
