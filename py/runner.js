@@ -35,9 +35,15 @@ export async function main(ns) {
   let html = `<py-config class="py-css-main">${config}</py-config>`;
 
   ns.tprint(`Running: ${ns.args[0]}`);
-  ns.tprint('INFO: file data')
-  ns.tprint(ns.read(ns.args[0]));
-  html += `<py-script class="py-css-main" id="py-script-id" output="py-terminal-id">${ns.read(ns.args[0])}</py-script>`;
+
+  let fileData = ns.read(ns.args[0]);
+  // modifiy file data to make it bit more reliable and not game breaking.
+  fileData += '\nfrom js import Die; Die()\n'; // stops the script code.
+  // TODO: finish preventing sleep accidents.
+  // fileData.replaceAll("time.sleep(", "asyncio.sleep(");
+  // fileData = 'import asyncio' + fileData;
+
+  html += `<py-script class="py-css-main" id="py-script-id" output="py-terminal-id">${fileData}</py-script>`;
 
   terminalInsert(html);
 

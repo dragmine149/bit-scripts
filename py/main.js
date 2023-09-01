@@ -1,42 +1,149 @@
-/** @param {NS} ns */
+import { setCSS, tailWindow, terminalInsert } from 'py/console-doc.js';
+/** @type {Document} */
+const doc = eval("document");
+
 let options;
 const argsSchema = [
-    ['builder', false], // Realse the builder script
-    ['file', ''], // The specified file to run.
+    ['builder', false], // Force the terminal to be rebuilt.
+    ['kill', false], // remove the terminal and all pyscript refrences.
 ];
 
 export function autocomplete(data, args) {
     data.flags(argsSchema);
-    const lastFlag = args.length > 1 ? args[args.length - 2] : null;
-    if (["--file"].includes(lastFlag))
-        return data.scripts;
-    return [];
+    return data.txts;
 }
 
+/** @param {NS} ns */
 export async function main(ns) {
     options = getConfiguration(ns, argsSchema);
     if (!options) return;
 
-    // temp;
-    if (options.builder) {
-        ns.run('py/builder.js');
-        ns.exit();
+    if (ns.args.length == 0) {
+      ns.tprint('ERROR: Please provide the file name!');
+      ns.exit();
     }
 
-    if (options.file == '') {
-        ns.tprint('No file specified!')
-        ns.exit();
-    }
+    // always make sure we have a ui.
+    await builder(ns, options.kill);
+    options.builder ? ns.exit() : null; // quit if we force builder.
 
-    ns.run('py/runner.js', { temporary: true }, options.file);
+    ns.run('py/runner.js', { temporary: true }, ns.args[ns.args.length - 1]);
     ns.exit();
 }
 
+const css = `<style id="pycss">
+  .py-css-main {white-space:pre; color:#ccc; font:14px monospace; line-height: 16px; }
+</style>`
 
+/** @param {NS} ns */
+async function builder(ns, remove=false) {
+  let pyscriptTag = doc.getElementById('pyscript-tag-id');
+  let scriptTag = doc.getElementById('pyns2js');
+  let terminalTag = doc.getElementById('py-terminal-id');
+  let tailTag  = doc.getElementById('pytail');
+  let cssTag = doc.getElementById('pycss');
+  let hiddenData = doc.getElementById('pyns2Data');
 
+  if (remove) {
+    ns.closeTail(doc.getElementById('tailID').innerHTML);
+    // we do not remove the pyscript tag. It will just stay and shouldn't cause any issues.
+    // removing it and reinserting it later can cause issues.
+    ns.exit();
+  }
 
+  let logArea;
+  let terminal;
 
+  ns.tprint('Checking terminal inisitalation status...');
 
+  ns.tprint('INFO: tail');
+  if (tailTag == null) {
+    // set up log window so we have it ready.
+    logArea = tailWindow(ns, ns.pid, {
+      'bc': '#000',
+      'c': '#fff',
+      'font': '14px Courier',
+      'x': 1267.6,
+      'y': -1.7,
+      'width': 1275,
+      'height': 360
+    }, '', 'PYTHON!');
+    logArea.id = 'pytail';
+  } else {
+    logArea = tailTag;
+  }
+
+  ns.tprint('INFO: hidden');
+  if (hiddenData == null) {
+    // these are all data transfer hidden elements.
+    const elements = `<div id="pyns2Data"><div id="tailID">${ns.pid}</div><div id="py-output" hidden></div><div id="pytns2"></div><div id="ns2tpy"></div><div id="ns2Die"></div></div>`;
+    terminalInsert(elements); // shove them in the terminal.
+    logArea.appendChild(doc.getElementById('pyns2Data')); // add to log area, so we don't accidently clear them
+  }
+
+  ns.tprint('INFO: script');
+  if (scriptTag == null) {
+    // this controlls information for js functions that py-script can communicate with.
+    let functions = doc.createElement('script');
+    functions.innerHTML = ns.read('py/script.js');
+    functions.id = 'pyns2js';
+    logArea.appendChild(functions); // add to log area, so we don't accidently clear them
+  }
+
+  ns.tprint('INFO: pyscript');
+  if (pyscriptTag == null) {
+    // Create the script information
+    let script = doc.createElement("script");
+    script.defer = true;
+    script.setAttribute("src", "https://pyscript.net/releases/2023.05.1/pyscript.js");
+    script.id = 'pyscript-tag-id';
+    doc.getElementsByTagName("head")[0].appendChild(script); // append it to head, so that it can always be loaded. (Also makes it work)
+  }
+
+  ns.tprint('INFO: css');
+  if (cssTag == null) {
+    // finally, set the css of the terminal.
+    // and add the terminal to the log area.
+    setCSS('pycss', css);
+    logArea.appendChild(doc.getElementById('pycss'));
+  }
+
+  ns.tprint('INFO: terminal')
+  if (terminalTag == null) {
+    if (pyscriptTag != null) {
+      terminal = doc.createElement('py-terminal');
+    } else {
+      try {
+        terminal = await Promise.race([wait(60000), getTerminal(ns)]);
+      } catch (err) {
+        ns.tprint(err);
+        ns.tprint('Creating new terminal!');
+        terminal = doc.createElement('py-terminal');
+      }
+    }
+    terminal.classList.add('pycss');
+    terminal.id = "py-terminal-id";
+    logArea.appendChild(terminal);
+  }
+  
+  ns.tprint('READY!');
+}
+
+/** @param {NS} ns */
+async function getTerminal(ns) {
+  let terminal = null;
+  while (terminal == null) {
+    terminal = doc.getElementsByTagName('py-terminal').item(0);
+    await ns.sleep(1);
+  }
+  return terminal;
+}
+
+function wait(ms) {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Timeout whilst waiting for terminal to load!')), ms);
+  });
+}
 
 
 

@@ -1,3 +1,4 @@
+/** @type {Document} */
 const doc = eval('document');
 
 /**
