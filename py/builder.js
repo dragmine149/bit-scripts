@@ -31,8 +31,9 @@ export async function main(ns) {
     'height': 360
   }, '', 'PYTHON!');
 
+
   // these are all data transfer hidden elements.
-  let elements = `<div id="pyns2Data"><div id="pytns2"></div><div id="ns2tpy"></div><div id="ns2Die"></div></div>`;
+  let elements = `<div id="pyns2Data"><div id="py-output" hidden></div><div id="pytns2"></div><div id="ns2tpy"></div><div id="ns2Die"></div></div>`;
   terminalInsert(elements); // shove them in the terminal.
 
   // this controlls information for js functions that py-script can communicate with.

@@ -5,8 +5,14 @@ const doc = eval("document");
 
 /** @param {NS} ns */
 export async function main(ns) {
+  if (ns.args.length == 0) {
+    ns.tprint('No file provided!');
+    ns.exit();
+  }
+
+  // kill old instances?
+
   // get files.
-  let files = ns.ls(ns.getHostname(), '.py.txt');
   let config = ns.read("py/files/config.py.toml.txt");
   let terminal = doc.getElementById('py-terminal-id');
 
@@ -28,10 +34,10 @@ export async function main(ns) {
 
   let html = `<py-config class="py-css-main">${config}</py-config>`;
 
-  for (let file of files) {
-    ns.tprint(`Running: ${file}`);
-    html += `<py-script class="py-css-main">${ns.read(file)}</py-script>`;
-  }
+  ns.tprint(`Running: ${ns.args[0]}`);
+  ns.tprint('INFO: file data')
+  ns.tprint(ns.read(ns.args[0]));
+  html += `<py-script class="py-css-main" id="py-script-id" output="py-terminal-id">${ns.read(ns.args[0])}</py-script>`;
 
   terminalInsert(html);
 
@@ -45,7 +51,6 @@ export async function main(ns) {
     let cmd = doc.getElementById('pytns2').innerHTML;
     if (cmd != '') {
       doc.getElementById('pytns2').innerHTML = '';
-      // let result = eval(cmd);
       cmd = `export async function main(ns) {
   ns.write('py/temp/result.txt', "" + ${cmd}, 'w');
 }`

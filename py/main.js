@@ -1,30 +1,35 @@
 /** @param {NS} ns */
 let options;
 const argsSchema = [
-  ['builder', false], // Realse the builder script
-  ['file', ''], // The specified file to run.
+    ['builder', false], // Realse the builder script
+    ['file', ''], // The specified file to run.
 ];
 
 export function autocomplete(data, args) {
-  data.flags(argsSchema);
-  const lastFlag = args.length > 1 ? args[args.length - 2] : null;
-  if (["--file"].includes(lastFlag))
-    return data.scripts;
-  return [];
+    data.flags(argsSchema);
+    const lastFlag = args.length > 1 ? args[args.length - 2] : null;
+    if (["--file"].includes(lastFlag))
+        return data.scripts;
+    return [];
 }
 
 export async function main(ns) {
-  options = getConfiguration(ns, argsSchema);
-  if (!options) return;
+    options = getConfiguration(ns, argsSchema);
+    if (!options) return;
 
-  // temp;
-  if (options.builder) {
-    ns.run('py/builder.js');
+    // temp;
+    if (options.builder) {
+        ns.run('py/builder.js');
+        ns.exit();
+    }
+
+    if (options.file == '') {
+        ns.tprint('No file specified!')
+        ns.exit();
+    }
+
+    ns.run('py/runner.js', { temporary: true }, options.file);
     ns.exit();
-  }
-
-  ns.run('py/runner.js', { temporary: true });
-  ns.exit();
 }
 
 
