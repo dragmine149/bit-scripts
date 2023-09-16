@@ -6,6 +6,7 @@ let options;
 const argsSchema = [
     ['builder', false], // Force the terminal to be rebuilt.
     ['kill', false], // remove the terminal and all pyscript refrences.
+    ['force', ''], // force buypass of time.sleep checker.
 ];
 
 export function autocomplete(data, args) {
@@ -27,7 +28,14 @@ export async function main(ns) {
     await builder(ns, options.kill);
     options.builder ? ns.exit() : null; // quit if we force builder.
 
-    ns.run('py/runner.js', { temporary: true }, ns.args[ns.args.length - 1]);
+    if (options.force != '' && options.force != 'yes') {
+      ns.tprint(`WARNING: running with --foce can cause the whole program to freeze up if a time.sleep statment is reached.
+If you really wish to continue, rerun this program with '--force yes'. However, it is safer to replace the time.sleep with the async version.
+      `)
+      ns.exit();
+    }
+
+    ns.run('py/runner.js', { temporary: true }, ns.args[ns.args.length - 1], options.force == 'yes' ? '--force' : '');
     ns.exit();
 }
 

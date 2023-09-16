@@ -1,6 +1,11 @@
 const wget_error_msg = "Attempts to access local files outside the normal game environment will be directed to this file.";
 
 let options;
+/** @type {string} */
+let auth;
+/** @type {RequestInit} */
+let headers;
+
 const argsSchema = [
     ['github', 'dragmine149'],
     ['repository', 'bit-scripts'],
@@ -12,6 +17,7 @@ const argsSchema = [
     ['remove', ''], // Remove a module. (Better than deleting all the files)
     ['setup', false], // Set up some required things. (alias)
     ['ver', ''], // Check the version of a file.
+    ['Auth', false], // Shows information regrading how to setup token auth.
 ];
 
 export function autocomplete(data, args) {
@@ -179,6 +185,33 @@ export async function main(ns) {
     options = getConfiguration(ns, argsSchema);
     if (!options) return;
 
+    if (ns.fileExists('Git/config.toml.txt')) {
+        auth = ns.read('Git/config.toml.txt');
+        if (auth == '') {
+            ns.tprint('WARNING: Invalid auth config!');
+        } else {
+            auth = "Bearer " + auth;
+            
+            // reset to free if no api requests alvalible.
+            let apiLimit = await getAPILimit(ns);
+            if (apiLimit.remaining <= 0 && !options.apiLimit) {
+                auth = '';
+                ns.tprint('WARNING: Using no authorisation token due to out of api requests.');
+            }
+        }
+    }
+
+    headers = {
+            headers: {
+                Authorization: auth
+            }
+        };
+
+    if (options.Auth) {
+        tokenAuth(ns);
+        ns.exit();
+    }
+
     if (options.apiLimit) {
         await printAPIInfo(ns);
         ns.exit();
@@ -309,7 +342,7 @@ async function getRepoVersion(ns, file) {
 async function getModuleFiles(ns, url) {
     let response = null;
     try {
-        response = await fetch(url);
+        response = await fetch(url, headers);
         response = await response.json();
 
         return response.tree;
@@ -327,7 +360,7 @@ async function repositoryListing(ns) {
 
     let response = null;
     try {
-        response = await fetch(listUrl); // Raw response
+        response = await fetch(listUrl, headers); // Raw response
         // Expect an array of objects: [{path:"", type:"[file|dir]" },{...},...]
         response = await response.json(); // Deserialized
 
@@ -353,7 +386,7 @@ async function getLatestUpdate(ns, moduleName) {
     const url = `https://api.github.com/repos/${options.github}/${options.repository}/commits?path=${moduleName}`;
     let response = null;
     try {
-        response = await fetch(url);
+        response = await fetch(url, headers);
         response = await response.json();
         console.log(url);
 
@@ -369,6 +402,7 @@ async function getLatestUpdate(ns, moduleName) {
 async function printAPIInfo(ns) {
     let info = await getAPILimit(ns);
     let date = new Date(info.reset * 1000);
+    let diff = (info.reset * 1000) - Date.now();
 
     ns.tprint(`INFO
     API Information:
@@ -377,10 +411,13 @@ async function printAPIInfo(ns) {
     Remaining: ${info.remaining} (${ns.formatPercent(info.remaining / info.limit)})
     Used: ${info.used}
     
-    Reseting: ${date.getDate()}/${date.getMonth()} ${date.getHours()}:${date.getMinutes()} (dd/mm hh/mi)
-    Note: you get 60/hour. The hour starts when you use your first api request.
+    Reset Date/Time: ${date.getDate()}/${date.getMonth()} ${date.getHours()}:${date.getMinutes()} (dd/mm hh/mi)
+    In other words: resetting in ${secondsToDhms(diff / 1000)}
+
+    Note: you get ${info.limit}/hour. The hour starts when you use your first api request.
     Note: running ${ns.getScriptName()} does not nesseccarly take from your limit for that hour.
-    Note: 99.9% of the time, you are unlickly to run out. Unless you are doing other things with the git api.`)
+    Note: 99.9% of the time, you are unlickly to run out. Unless you are doing other things with the git api.
+    NOTE: If you want a higher limit per hour, you can make the 'Git/config.toml.txt' file with an auth token.`)
 }
 
 /** @param {NS} ns */
@@ -388,7 +425,7 @@ async function getAPILimit(ns) {
     const limitURL = `https://api.github.com/rate_limit`;
     let response = null;
     try {
-        response = await fetch(limitURL); // raw data
+        response = await fetch(limitURL, headers); // raw data
         response = await response.json(); // deseriaalized
 
         return response.resources.core;
@@ -400,6 +437,77 @@ async function getAPILimit(ns) {
         };
     }
 }
+
+/**
+ * @param {number} seconds
+ * @param {boolean} compact
+ */
+function secondsToDhms(seconds, compact = false) {
+  seconds = Number(seconds);
+  var d = Math.floor(seconds / (3600*24));
+  var h = Math.floor(seconds % (3600*24) / 3600);
+  var m = Math.floor(seconds % 3600 / 60);
+  var s = Math.floor(seconds % 60);
+
+  var dDisplay = d > 0 ? d + (compact ? "d" : d == 1 ? " day, " : " days, ") : "";
+  var hDisplay = h > 0 ? h + (compact ? "h" : h == 1 ? " hour, " : " hours, ") : "";
+  var mDisplay = m > 0 ? m + (compact ? "m" : m == 1 ? " minute, " : " minutes, ") : "";
+  var sDisplay = s > 0 ? s + (compact ? "s" : s == 1 ? " second" : " seconds") : "";
+  return dDisplay + hDisplay + mDisplay + sDisplay;
+}
+
+/** @param {NS} ns */
+function tokenAuth(ns) {
+    if (!ns.fileExists('Git/config.toml.txt')) {
+        ns.write('Git/config.toml.txt', '');
+    }
+
+    ns.tprint(`INFO on using token authentication:
+
+By default, the normal api only gives a limit of 60 per hour. And does limit some of the functions you are able to do.
+However, you can use an auth token to increase the limit and the amount of requests you can have per hour. This program supports that.
+
+You are not required to have an auth token to use this program. It is completly optional and up to you.
+If you do use the auth token, it will only be stored locally and sent to github only (via fetch requests).
+
+By the time this message is generated, a config file will have already been generated for the token to be stored in. LOCATION: 'Git/config.toml.txt' (NOTE: if you already have that file, it has not been overwritten).
+To generate a token follow the steps below:
+
+1. visit https://github.com/settings/tokens
+2. Log in
+3. Generate a new token
+4. Set up permissions for that token (I recommend no permissions, public only, and expiration date is up to you.)
+5. Place token in file.
+6. Success.
+
+NOTE: do not start the file off with 'Bearer ' because that is automatically provided.
+NOTE: Permissions provided are at your own risk. As this programm currently doesn't need any special permissions, No permissions are recommened.
+
+This program will use the auth token when it can, except for when its out of api requests. Then it will go ahead and use the main free branch but with limit api requests.
+To get how many api requests you have left, run ${ns.getScriptName()} --apiLimit
+
+If you want to read up more about api token, bellow are some links to related documentation:
+https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+https://docs.github.com/en/rest/overview/authenticating-to-the-rest-api?apiVersion=2022-11-28
+
+As of writing, the new Fine-grained PAT is in beta, it does not matter which one you use. However, using a Fine-grained PAT does give you more controll than the Classic PAT.
+Read more: https://github.blog/2022-10-18-introducing-fine-grained-personal-access-tokens-for-github/
+`)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-import { terminalInsert, setCSS } from 'py/console-doc.js';
+import { terminalInsert } from 'py/console-doc.js';
 
 /** @type {Document} */
 const doc = eval("document");
@@ -11,15 +11,11 @@ export async function main(ns) {
   }
 
   // kill old instances?
+  doc.getElementById('ns2Die').innerHTML = '';
 
   // get files.
   let config = ns.read("py/files/config.py.toml.txt");
   let terminal = doc.getElementById('py-terminal-id');
-
-  if (terminal == undefined) {
-    ns.tprint("Invalid terminal. Please run `py --builder first!`");
-    return
-  }
 
   // clean up old stuff.
   let configElements = doc.getElementsByTagName('py-config');
@@ -38,7 +34,15 @@ export async function main(ns) {
 
   let fileData = ns.read(ns.args[0]);
   // modifiy file data to make it bit more reliable and not game breaking.
-  fileData += '\nfrom js import Die; Die()\n'; // stops the script code.
+  if (fileData.search('from js import Die; Die()') == -1) {
+    fileData += '\nfrom js import Die; Die()\n'; // stops the script code.
+    ns.tprint('Automatically added die command to end of script!');
+  }
+  // earily prevention with time.sleep
+  if (fileData.search('time.sleep') != -1 && ns.args[1] != '--force') {
+    ns.tprint('ERROR: Detected a `time.sleep` statement. Either change to use Asyncio or not include it at all. To buypass this checker, run py/main.js --force.');
+    ns.exit();
+  }
   // TODO: finish preventing sleep accidents.
   // fileData.replaceAll("time.sleep(", "asyncio.sleep(");
   // fileData = 'import asyncio' + fileData;
