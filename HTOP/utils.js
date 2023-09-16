@@ -3,17 +3,17 @@
  * @param {boolean} compact
  */
 export function secondsToDhms(seconds, compact = false) {
-  seconds = Number(seconds);
-  var d = Math.floor(seconds / (3600*24));
-  var h = Math.floor(seconds % (3600*24) / 3600);
-  var m = Math.floor(seconds % 3600 / 60);
-  var s = Math.floor(seconds % 60);
+    seconds = Number(seconds);
+    var d = Math.floor(seconds / (3600 * 24));
+    var h = Math.floor(seconds % (3600 * 24) / 3600);
+    var m = Math.floor(seconds % 3600 / 60);
+    var s = Math.floor(seconds % 60);
 
-  var dDisplay = d > 0 ? d + (compact ? "d" : d == 1 ? " day, " : " days, ") : "";
-  var hDisplay = h > 0 ? h + (compact ? "h" : h == 1 ? " hour, " : " hours, ") : "";
-  var mDisplay = m > 0 ? m + (compact ? "m" : m == 1 ? " minute, " : " minutes, ") : "";
-  var sDisplay = s > 0 ? s + (compact ? "s" : s == 1 ? " second" : " seconds") : "";
-  return dDisplay + hDisplay + mDisplay + sDisplay;
+    var dDisplay = d > 0 ? d + (compact ? "d" : d == 1 ? " day, " : " days, ") : "";
+    var hDisplay = h > 0 ? h + (compact ? "h" : h == 1 ? " hour, " : " hours, ") : "";
+    var mDisplay = m > 0 ? m + (compact ? "m" : m == 1 ? " minute, " : " minutes, ") : "";
+    var sDisplay = s > 0 ? s + (compact ? "s" : s == 1 ? " second" : " seconds") : "";
+    return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
 /** @param {NS} ns */
@@ -35,18 +35,18 @@ export function getResetTime(ns) {
  * @param {NS} ns
  */
 export function getRam(ns, host) {
-  let r = {
-    "used": ns.getServerUsedRam(host),
-    "max": ns.getServerMaxRam(host),
-    "free": 0
-  };
+    let r = {
+        "used": Math.abs(ns.getServerUsedRam(host)),
+        "max": Math.abs(ns.getServerMaxRam(host)),
+        "free": 0
+    };
 
-  r.free = r.max - r.used;
+    r.free = r.max - r.used;
 
-  return r;
+    return r;
 }
 
-export function getServerFromHTML(defaultServer='home') {
+export function getServerFromHTML(defaultServer = 'home') {
     let info = null;
     try {
         info = eval('document').getElementById("P_HID_SERVER").innerText;
@@ -56,7 +56,7 @@ export function getServerFromHTML(defaultServer='home') {
     return info == '' ? defaultServer : info;
 }
 
-export function progressBar2(progressData, nums='', length=50, html=false, cssData) {
+export function progressBar2(progressData, nums = '', length = 50, html = false, cssData) {
     // progress bar stuff.
     let progress = `[`;
 
@@ -101,41 +101,58 @@ export function getRamAllServers(ns, runServer) {
     return totalRam;
 }
 
+/** @param {NS} ns
+ * @param {string} server
+ */
+function getServerConnections(ns, server) {
+    // TODO: read file and return connections
+    // probably store files in their own section.
+    // to make sure we keep this up to date (purcahsed servers). The data will be saved during a DFS loop.
+    // DFS loop happens everytime the all server ram usage progress bar updates.
+    let connections = ns.read(`HTOP/data/${server}.connections.txt`);
+    return connections.split('\n');
+}
 
+/** @param {NS} ns
+ * @param {string} server Server to get the route to
+ */
 export function getRoute(ns, server) {
     const serverInfo = (serverName) => {
-            // Costs 2 GB. If you can't don't need backdoor links, uncomment and use the alternate implementations below
-            // return ns.getServer(serverName)
-            return {
-                // requiredHackingSkill: ns.getServerRequiredHackingLevel(serverName),
-                // hasAdminRights: ns.hasRootAccess(serverName),
-                purchasedByPlayer: serverName.includes('daemon') || serverName.includes('hacknet'),
-                backdoorInstalled: false // No way of knowing without ns.getServer
-            }
+        // Costs 2 GB. If you can't don't need backdoor links, uncomment and use the alternate implementations below
+        // return ns.getServer(serverName)
+        return {
+            // requiredHackingSkill: ns.getServerRequiredHackingLevel(serverName),
+            // hasAdminRights: ns.hasRootAccess(serverName),
+            purchasedByPlayer: serverName.includes('daemon') || serverName.includes('hacknet'),
+            backdoorInstalled: false // No way of knowing without ns.getServer
         }
+    }
     const ordering = (serverA, serverB) => {
-            // Sort servers with fewer connections towards the top.
-            let orderNumber = ns.scan(serverA).length - ns.scan(serverB).length
-            // Purchased servers to the very top
-            orderNumber = orderNumber != 0 ? orderNumber
-                : serverInfo(serverB).purchasedByPlayer - serverInfo(serverA).purchasedByPlayer
-            // Hack: compare just the first 2 chars to keep purchased servers in order purchased
-            orderNumber = orderNumber != 0 ? orderNumber
-                : serverA.slice(0, 2).toLowerCase().localeCompare(serverB.slice(0, 2).toLowerCase())
+        // Sort servers with fewer connections towards the top.
+        let orderNumber = getServerConnections(ns, serverA).length - getServerConnections(ns, serverB).length
+        // Purchased servers to the very top
+        orderNumber = orderNumber != 0 ? orderNumber
+            : serverInfo(serverB).purchasedByPlayer - serverInfo(serverA).purchasedByPlayer
+        // Hack: compare just the first 2 chars to keep purchased servers in order purchased
+        orderNumber = orderNumber != 0 ? orderNumber
+            : serverA.slice(0, 2).toLowerCase().localeCompare(serverB.slice(0, 2).toLowerCase())
 
-            return orderNumber
-        }
+        return orderNumber
+    }
     let servers = ["home"],
         parentByIndex = [""],
         routes = { home: "home" }
-    for (let server of servers)
-        for (let oneScanResult of ns.scan(server).sort(ordering))
+    for (let server of servers) {
+        let serConnections = getServerConnections(ns, server);
+        // let serConnections = ns.scan(server);
+        for (let oneScanResult of serConnections.sort(ordering))
             if (!servers.includes(oneScanResult)) {
                 const backdoored = serverInfo(oneScanResult)?.backdoorInstalled
                 servers.push(oneScanResult)
                 parentByIndex.push(server)
                 routes[oneScanResult] = backdoored ? "connect " + oneScanResult : routes[server] + ";connect " + oneScanResult
-         }
+            }
+    }
     return routes[server];
 }
 
@@ -155,12 +172,17 @@ export function DFS(ns, host) {
     let all = [];
     while (stack.length !== 0) {
         let h = stack.pop();
-        for (let child of ns.scan(h.host)) {
+        let children = ns.scan(h.host);
+        let savedChild = '';
+        for (let child of children) {
+            savedChild += `${child}\n`; // still save it because this is used for other things as well.
             if (visited[child] === true)
                 continue;
             stack.push({ host: child, parent: h.host });
             visited[child] = true;
         }
+
+        ns.write(`HTOP/data/${h.host}.connections.txt`, savedChild, 'w');
 
         let pss = ns.ps(h.host);
         data.push(...pss);
@@ -173,7 +195,7 @@ export function DFS(ns, host) {
     return [data, hosts, all];
 }
 
-const randomHighContrastHexColor = () => '#' + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0');
+export const randomHighContrastHexColor = () => '#' + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0') + Math.floor(Math.random() * 128 + 128).toString(16).padStart(2, '0');
 
 /**
  * @param {NS} ns
@@ -186,7 +208,50 @@ export function generateColourForServer(ns) {
         data[sv] = randomHighContrastHexColor();
     }
 
-    ns.write('HTOP/server_data.json.txt', JSON.stringify(data));
+    ns.write('HTOP/data/server_data.json.txt', JSON.stringify(data));
+}
+
+
+/** @param {NS} ns
+ *  @param {string} server
+ *  @param {string[]} scripts
+ */
+export function generateScriptColour(ns, server, scripts) {
+    let data = {};
+    for (let sv of scripts) {
+        data[sv] = randomHighContrastHexColor();
+    }
+
+    ns.write(`HTOP/data/scripts/${server}_script_data.json.txt`, JSON.stringify(data), 'w');
+}
+
+/** @param {NS} ns
+ *  @param {string} server
+ *  @param {string} script
+ */
+export function getScriptColour(ns, server, script) {
+    let scriptColours = ns.read(`HTOP/data/scripts/${server}_script_data.json.txt`);
+    try {
+        scriptColours = JSON.parse(scriptColours);
+    } catch (e) {
+        ns.print("WARN: Failed to parse json data for script colours. Regenerating...");
+        ns.toast('Regenerating script colours due to load failure!', 'warning');
+        generateScriptColour(ns, server, [script]);
+        scriptColours = ns.read(`HTOP/data/scripts/${server}_script_data.json.txt`);
+        scriptColours = JSON.parse(scriptColours);
+    }
+
+    let colour;
+    try {
+        colour = scriptColours[script];
+        if (colour == null || colour == undefined || colour == '') {
+            colour = generateScriptColourDetails(ns, scriptColours, script, server);
+        }
+    } catch (e) {
+        colour = generateScriptColourDetails(ns, scriptColours, script, server);
+    }
+
+    return colour;
 }
 
 /**
@@ -194,30 +259,46 @@ export function generateColourForServer(ns) {
  * @param {string} server
  */
 export function getServerColour(ns, server) {
-    if (!ns.fileExists('HTOP/server_data.json.txt')) {
-        generateColourForServer(ns)
-    }
-
-    let serverColours = ns.read('HTOP/server_data.json.txt');
+    let serverColours = ns.read('HTOP/data/server_data.json.txt');
     try {
         serverColours = JSON.parse(serverColours);
     } catch (e) {
         ns.print("WARN: Failed to parse json data for server colours. Regenerating...");
+        ns.toast('Regenerating server colours due to load failure!', 'warning');
         generateColourForServer(ns);
-        serverColours = ns.read('HTOP/server_data.json.txt');
+        serverColours = ns.read('HTOP/data/server_data.json.txt');
         serverColours = JSON.parse(serverColours);
     }
 
-    let colour = serverColours[server];
-    if (colour == null || colour == undefined || colour == '') {
-        serverColours[server] = randomHighContrastHexColor();
-        ns.write('HTOP/server_data.json.txt', JSON.stringify(serverColours));
+    let colour;
+    try {
         colour = serverColours[server];
+        if (colour == null || colour == undefined || colour == '') {
+            colour = generateServerColourDetails(ns, serverColours, server);
+        }
+    } catch (err) {
+        // assume server didn't original exist, and generate a new random colour
+        colour = generateServerColourDetails(ns, serverColours, server);
     }
 
     return colour;
 }
 
+function generateServerColourDetails(ns, serverColours, server) {
+    serverColours[server] = randomHighContrastHexColor();
+    ns.write('HTOP/data/server_data.json.txt', JSON.stringify(serverColours), 'w');
+    return serverColours[server];;
+}
+
+/** @param {string} script */
+function generateScriptColourDetails(ns, scriptColours, script, server) {
+    if (!script.endsWith('.js')) {
+        return;
+    }
+    scriptColours[script] = randomHighContrastHexColor();
+    ns.write(`HTOP/data/scripts/${server}_script_data.json.txt`, JSON.stringify(scriptColours), 'w');
+    return scriptColours[server];;
+}
 
 
 

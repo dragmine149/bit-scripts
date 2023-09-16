@@ -5,6 +5,12 @@ const doc = eval('document');
  * HTML code to show in the terminal
  */
 export function terminalInsert(html) {
+  let term = doc.getElementById('terminal');
+  if (term == undefined) {
+    // just return and hope this doesn't break much.
+    return;
+  }
+
   doc.getElementById("terminal").insertAdjacentHTML('beforeend', `<li>${html}</li>`);
 }
 

@@ -18,7 +18,9 @@ export async function main(ns) {
   setCSS("htopauto", css);
   terminalInsert(html);
 
-  addCallback(".auto-alias", `alias htop="run HTOP/htop.js"`);
-  addCallback(".auto-help", `run HTOP/htop.js --help`);
-  addCallback(".auto-ram", "run HTOP/ram-calc.js");
+  let parent = ns.getScriptName().split('/').slice(0, -1).join('/');
+
+  addCallback(".auto-alias", `alias htop="run ${parent}/htop.js"`);
+  addCallback(".auto-help", `run ${parent}/htop.js --help`);
+  addCallback(".auto-ram", `run ${parent}/htop.js --ram`);
 }
