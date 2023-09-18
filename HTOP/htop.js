@@ -320,7 +320,7 @@ export async function main(ns) {
   if (!runOptions) return; // Invalid options, or ran in --help mode.
 
   if (runOptions.new_server_colours) {
-    ns.write('HTOP/server_data.json.txt', '', 'w');
+    ns.write('HTOP/data/server_data.json.txt', '', 'w');
     ns.tprint("Please run htop again. Server Colours will be regenerated on htop start.");
     // this is cheaper way of doing it. TODO: utils.js fix.
     ns.exit();
@@ -329,7 +329,7 @@ export async function main(ns) {
   if (runOptions.new_script_colours) {
     let servers = runOptions.new_script_colours;
     // TODO: add option to reset all at once.
-    ns.write(`HTOP/${servers}_home_data.json.txt`, '', 'w');
+    ns.write(`HTOP/data/scripts/${servers}_home_data.json.txt`, '', 'w');
     ns.tprint(`Please run htop again. Script colours for ${servers} will be regenerated on htop start.`);
     ns.exit();
   }
@@ -342,6 +342,10 @@ export async function main(ns) {
     ns.tprint(`WARN: htop is already running in some way, shape or form. (If not using tail mode. Click out and back into terminal to reset. If using tail mode, close the window. Else, 'ps' and kill the pid.)`);
     ns.exit();
   }
+
+  // run other files where ram is lower than htop-process-info-runner.js to store information that doesn't need to be requeryed.
+  // these shouldn't take too long.
+  let iId = ns.run('HTOP/info.js');
 
   ns.disableLog("ALL");
   ns.atExit(() => die(ns));

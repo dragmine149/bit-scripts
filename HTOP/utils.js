@@ -18,9 +18,15 @@ export function secondsToDhms(seconds, compact = false) {
 
 /** @param {NS} ns */
 export function getResetTime(ns) {
-    let resetInfo = ns.getResetInfo();
+    let ri = ns.read('HTOP/reset-info.txt').split('\n');
+    let resetInfo = {
+        'lastAugReset': ri[0],
+        'lastNodeReset': ri[1]
+    }
+    // let resetInfo = ns.getResetInfo();
     let plr = ns.getPlayer();
     let dn = Date.now();
+
     let augTime = resetInfo.lastAugReset == -1 ? secondsToDhms(plr.totalPlaytime / 1000) : secondsToDhms((dn - resetInfo.lastAugReset) / 1000);
     let nodeTime = resetInfo.lastNodeReset == -1 ? '' : `${secondsToDhms((dn - resetInfo.lastNodeReset) / 1000)} (node)`;
 
