@@ -16,6 +16,12 @@ If a module doesn't come with `AutoStart.js` the file to run is normally the sam
 ## Module Information
 This section just contains information about what each module does. Although they are explained in their represented `--help` menus.
 
+### AnotherStupidThing (Name to be changed)
+Make a whole new menu. With whatever you want in there. Easy to use.
+Currently there missing lots of support (as of v0.1.0).
+To run: `run AnotherStupidThing/nav.js` This will take any folder provided in `AnotherStupidThing` and their information to make the ui.
+More information will be provided once more supported. For now feel free to have a look at the default `Test` folder.
+
 ### Git
 Commands and other basic git abilities.
 NOTE: might not work well with other repos.
