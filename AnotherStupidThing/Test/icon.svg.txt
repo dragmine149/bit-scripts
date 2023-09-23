@@ -1,0 +1,12 @@
+<svg width="24" height="24">
+   <circle cx="12" cy="12" r="9" stroke="grey" stroke-width="2" fill="none" />
+   <text x="10.5" y="8"><tspan font-weight="bold">i</tspan></text>
+   <style>
+    <![CDATA[
+      text{
+        dominant-baseline: hanging;
+        font: 12px Verdana, Helvetica, Arial, sans-serif;
+      }
+    ]]>
+  </style>
+</svg>

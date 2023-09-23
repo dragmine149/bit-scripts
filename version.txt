@@ -2,3 +2,4 @@ HTOP:1.4.1
 Git:1.2.0
 Testing:1.0.1
 py:0.2.1
+AnotherStupidThing:0.1.0
