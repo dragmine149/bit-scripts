@@ -1,0 +1,16 @@
+import asyncio
+
+async def countdown():
+    time_sec = 10
+    while time_sec:
+        mins, secs = divmod(time_sec, 60)
+        timeformat = '{:02d}:{:02d}'.format(mins, secs)
+        print(timeformat, end='\r')
+        await asyncio.sleep(1)
+        time_sec -= 1
+
+    print("stop")
+
+    from js import Die; Die()
+
+asyncio.ensure_future(countdown())

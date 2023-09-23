@@ -16,6 +16,8 @@ let html = `<span class="auto-main">`
   setCSS("pyauto", css);
   terminalInsert(html);
 
-  addCallback(".auto-alias", `alias py="run py/main.js"`);
-  addCallback(".auto-help", `run py/main.js --help`);
+  let parent = ns.getScriptName().split('/').slice(0, -1).join('/');
+
+  addCallback(".auto-alias", `alias py="run ${parent}/main.js"`);
+  addCallback(".auto-help", `run ${parent}/main.js --help`);
 }

@@ -36,16 +36,13 @@ export async function main(ns) {
   // modifiy file data to make it bit more reliable and not game breaking.
   if (fileData.search('from js import Die; Die()') == -1) {
     fileData += '\nfrom js import Die; Die()\n'; // stops the script code.
-    ns.tprint('Automatically added die command to end of script!');
+    ns.tprint("WARNING: Automatically added die command to end of script! Include: `from js import Die; Die()` if you don't want it at the end of the script");
   }
   // earily prevention with time.sleep
   if (fileData.search('time.sleep') != -1 && ns.args[1] != '--force') {
     ns.tprint('ERROR: Detected a `time.sleep` statement. Either change to use Asyncio or not include it at all. To buypass this checker, run py/main.js --force.');
     ns.exit();
   }
-  // TODO: finish preventing sleep accidents.
-  // fileData.replaceAll("time.sleep(", "asyncio.sleep(");
-  // fileData = 'import asyncio' + fileData;
 
   html += `<py-script class="py-css-main" id="py-script-id" output="py-terminal-id">${fileData}</py-script>`;
 

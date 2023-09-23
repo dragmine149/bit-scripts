@@ -1,0 +1,13 @@
+# Program to display calendar of the given month and year
+
+# importing calendar module
+import calendar
+import datetime
+
+dt = datetime.datetime.utcnow()
+
+yy = dt.year  # year
+mm = dt.month    # month
+
+# display the calendar
+print(calendar.month(yy, mm))
