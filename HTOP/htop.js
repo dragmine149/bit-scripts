@@ -8,6 +8,7 @@ const getRamText = (ns, ram) => `${ns.formatRam(ram.used)}/${ns.formatRam(ram.ma
 
 
 /** @param {NS} ns
+ * @param {argsSchema} runOptions
  * @returns {ProcessInfo[]}
  */
 function getProcesses(ns, runOptions) {
@@ -20,6 +21,7 @@ function getProcesses(ns, runOptions) {
 
 /**
  * @param {NS} ns
+ * @param {argsSchema} runOptions
  */
 function generateProgressBar(ns, runOptions) {
   if (runOptions.all_servers) {
@@ -78,6 +80,7 @@ function generateProgressBar(ns, runOptions) {
 
 /**
  * @param {NS} ns
+ * @param {argsSchema} runOptions
  */
 export function generateProcesses(ns, runOptions) {
   let processes = getProcesses(ns, runOptions);
@@ -124,6 +127,7 @@ export function generateProcessInfo(ns, id) {
 
 /**
  * @param {NS} ns
+ * @param {argsSchema} runOptions
  */
 export async function generateUI(ns, runOptions) {
   // return if the ui already exists.
@@ -183,8 +187,8 @@ export async function generateUI(ns, runOptions) {
       'bc': '#000',
       'c': '#20AB20',
       'font': '32px Courier',
-      'x': 1267.6,
-      'y': -1.7,
+      'x': runOptions.tail_x,
+      'y': runOptions.tail_y,
       'width': 0,
       'height': 0
     }, html, 'htop');
@@ -196,6 +200,7 @@ export async function generateUI(ns, runOptions) {
 
 /**
  * @param {NS} ns
+ * @param {argsSchema} runOptions
  */
 export async function updateUI(ns, runOptions) {
   while (true) {
@@ -238,6 +243,18 @@ export async function updateUI(ns, runOptions) {
   }
 }
 
+/** @type {{
+ * delay: number,
+ * use_tail: bool,
+ * server: string,
+ * all_servers: bool,
+ * no_colour: bool,
+ * new_server_colours: bool,
+ * new_script_colours: string,
+ * ram: bool,
+ * tail_x: number,
+ * tail_y: number
+ * }} */
 const argsSchema = [
   ['delay', 5000], // The default delay of updating the process list. (Does not effect the individual process). Note: it is not recommened to go below 250 (1/4s due to how the script works.)
   ['use_tail', false], // Use the tail UI instead of inserting it into the console.
@@ -247,8 +264,9 @@ const argsSchema = [
   ['new_server_colours', false], // Reset the colours generated for all servers and make new ones.
   ['new_script_colours', ''], // Reset the colours generated for each script (on specified server) and make new ones.
   ['ram', false], // show information about ram cost.
+  ['tail_x', 1267.6], // default y position of the tail window
+  ['tail_y', -1.7], // default x position of the tail window
 ];
-
 
 /**
  * @param {{
@@ -316,6 +334,7 @@ export async function main(ns) {
     ns.print("Failed to check for new version due to missing Git module");
   }
 
+  /** @type {argsSchema} */
   const runOptions = getConfiguration(ns, argsSchema);
   if (!runOptions) return; // Invalid options, or ran in --help mode.
 
